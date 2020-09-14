@@ -12,7 +12,7 @@ export function ensureFileDirectoryExists(filePath: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function errorString(e: any) {
-    return (e && e.stack) || '' + e;
+  return (e && e.stack) || '' + e;
 }
 
 // returns UTC clock time in seconds (similar to unix timestamp / Ethereum block time / RefTime)

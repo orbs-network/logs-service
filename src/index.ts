@@ -3,7 +3,7 @@ import { Configuration } from './config';
 import cors from 'cors';
 import * as Logger from './logger';
 import { sleep, errorString } from './helpers';
-import {generateStatusObj, writeStatusToDisk} from './status';
+import { generateStatusObj, writeStatusToDisk } from './status';
 import { State } from './model/state';
 
 export function serve(serviceConfig: Configuration) {
@@ -17,7 +17,6 @@ export function serve(serviceConfig: Configuration) {
   app.get('/', (_: Request, response: Response) => {
     response.status(200).json({});
   });
-
 
   app.get('/status', (_request: Request, response: Response) => {
     const body = generateStatusObj(state, serviceConfig, undefined);
@@ -36,7 +35,7 @@ export function serve(serviceConfig: Configuration) {
   });
 
   return app.listen(serviceConfig.Port, '0.0.0.0', () =>
-      Logger.log(`Logs service listening on port ${serviceConfig.Port}!`)
+    Logger.log(`Logs service listening on port ${serviceConfig.Port}!`)
   );
 }
 

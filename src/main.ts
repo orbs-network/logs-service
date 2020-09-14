@@ -1,5 +1,5 @@
 import * as Logger from './logger';
-import {runStatusUpdateLoop, serve} from '.';
+import { runStatusUpdateLoop, serve } from '.';
 import { parseArgs } from './cli-args';
 
 process.on('uncaughtException', function (err) {
