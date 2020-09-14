@@ -1,6 +1,6 @@
 # logs-service (replace with your service name)
 
-for example: Exposes log files form each node module (service).
+Exposes log files form each node module (service).
 The service provides basic API to support log aggregation by an outside system.
 
 ## Install dev environment
