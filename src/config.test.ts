@@ -30,3 +30,15 @@ test('validateConfiguration fails on missing status path', (t) => {
   invalidConfig.StatusJsonPath = '';
   t.throws(() => validateConfiguration(invalidConfig));
 });
+
+test('validateConfiguration fails on missing logs path', (t) => {
+  const invalidConfig = _.cloneDeep(exampleConfig);
+  delete invalidConfig.LogsPath;
+  t.throws(() => validateConfiguration(invalidConfig));
+});
+
+test('validateConfiguration fails on empty logs path', (t) => {
+  const invalidConfig = _.cloneDeep(exampleConfig);
+  invalidConfig.LogsPath = '';
+  t.throws(() => validateConfiguration(invalidConfig));
+});

@@ -1,6 +1,7 @@
 export interface Configuration {
   Port: number;
   StatusJsonPath: string;
+  LogsPath: string;
   StatusUpdateLoopIntervalSeconds: number;
 }
 
@@ -26,5 +27,8 @@ export function validateConfiguration(config: Configuration) {
   }
   if (!config.StatusJsonPath || config.StatusJsonPath === '') {
     throw new Error(`StatusJsonPath is empty in config.`);
+  }
+  if (!config.LogsPath || config.LogsPath === '') {
+    throw new Error(`LogsPath is empty in config.`);
   }
 }

@@ -5,6 +5,7 @@ import * as Logger from './logger';
 import { sleep, errorString } from './helpers';
 import { generateStatusObj, writeStatusToDisk } from './status';
 import { State } from './model/state';
+import { setupLogsServerApp } from './endpoint';
 
 export function serve(serviceConfig: Configuration) {
   const state = new State();
@@ -34,6 +35,8 @@ export function serve(serviceConfig: Configuration) {
     return next(error);
   });
 
+  setupLogsServerApp(app, serviceConfig, state, );
+
   return app.listen(serviceConfig.Port, '0.0.0.0', () =>
     Logger.log(`Logs service listening on port ${serviceConfig.Port}!`)
   );
@@ -42,7 +45,7 @@ export function serve(serviceConfig: Configuration) {
 export async function runStatusUpdateLoop(config: Configuration) {
   const state = new State();
   writeStatusToDisk(config.StatusJsonPath, state, config);
-  for (;;) {
+  for (; ;) {
     try {
       // rest (to make sure we don't retry too aggressively on exceptions)
       await sleep(config.StatusUpdateLoopIntervalSeconds * 1000);

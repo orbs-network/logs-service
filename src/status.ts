@@ -12,6 +12,7 @@ export function generateStatusObj(state: State, config: Configuration, err?: Err
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
       Config: config,
+      ...state,
     },
   };
 
