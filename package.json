@@ -1,0 +1,62 @@
+{
+  "name": "@orbs-network/logs-service",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Node service to send Ethereum transactions for elections lifecycle (like auto vote unready)",
+  "author": "Tal Kol <talkol@gmail.com>",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "!dist/**/*.test.js"
+  ],
+  "engines": {
+    "node": ">=12.14.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "lint": "eslint . --ext .ts,.tsx -f codeframe",
+    "pretest": "npm run typecheck && npm run lint",
+    "clean": "rimraf ./dist/",
+    "prebuild": "npm run clean",
+    "build": "tsc --skipLibCheck -p ./tsconfig.prod.json && ./boyar/create-version-file.sh && docker build -t local/logs-service .",
+    "build:quick": "tsc --skipLibCheck -p ./tsconfig.prod.json",
+    "test": "ava --verbose --serial",
+    "test:quick": "echo '-- TEST --' && ava --verbose",
+    "test:e2e": "ava --verbose --timeout=10m --serial --config ./ava.config.e2e.js",
+    "prepack": "npm run build",
+    "prettify": "npx prettier \"src/**/*.ts\" --write && npx prettier \"e2e/**/*.ts\" --write",
+    "start": "node --async-stack-traces ./dist/main.js"
+  },
+  "devDependencies": {
+    "@types/child-process-promise": "^2.2.1",
+    "@types/lodash": "^4.14.149",
+    "@types/mock-fs": "^4.10.0",
+    "@types/node": "^12.12.31",
+    "@types/node-fetch": "^2.5.5",
+    "@types/yargs": "^15.0.4",
+    "@typescript-eslint/eslint-plugin": "^2.25.0",
+    "@typescript-eslint/parser": "^2.25.0",
+    "ava": "^3.5.1",
+    "bn.js": "^5.1.1",
+    "child-process-promise": "^2.2.1",
+    "docker-compose-mocha": "^1.2.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "mock-fs": "^4.11.0",
+    "nock": "^12.0.3",
+    "rimraf": "^3.0.2",
+    "ts-node": "^8.8.1",
+    "ts-retry-promise": "^0.2.0",
+    "typescript": "~3.7.5"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15",
+    "node-fetch": "^2.6.0",
+    "orbs-client-sdk": "^2.3.1",
+    "orbs-signer-client": "^1.0.0",
+    "ts-json-decode": "^0.5.1",
+    "yargs": "^15.3.1"
+  }
+}
