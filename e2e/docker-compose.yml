@@ -4,3 +4,5 @@ services:
         build:
             context: .
             dockerfile: ./Dockerfile-app.test
+        ports:
+            - 8080:8080

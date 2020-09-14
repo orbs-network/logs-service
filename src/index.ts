@@ -1,8 +1,44 @@
-import * as Logger from './logger';
-import { sleep } from './helpers';
+import express, { Request, Response, NextFunction } from 'express';
 import { Configuration } from './config';
-import { writeStatusToDisk } from './status';
+import cors from 'cors';
+import * as Logger from './logger';
+import { sleep, errorString } from './helpers';
+import {generateStatusObj, writeStatusToDisk} from './status';
 import { State } from './model/state';
+
+export function serve(serviceConfig: Configuration) {
+  const state = new State();
+
+  const app = express();
+  // DEV_NOTE : O.L : Allows access from any domain.
+  app.use(cors());
+  app.set('json spaces', 2);
+
+  app.get('/', (_: Request, response: Response) => {
+    response.status(200).json({});
+  });
+
+
+  app.get('/status', (_request: Request, response: Response) => {
+    const body = generateStatusObj(state, serviceConfig, undefined);
+    response.status(200).json(body);
+  });
+
+  app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+    if (error instanceof Error) {
+      Logger.error(`Error response to ${req.url}: ${errorString(error)}.`);
+      return res.status(500).json({
+        status: 'error',
+        error: errorString(error),
+      });
+    }
+    return next(error);
+  });
+
+  return app.listen(serviceConfig.Port, '0.0.0.0', () =>
+      Logger.log(`Logs service listening on port ${serviceConfig.Port}!`)
+  );
+}
 
 export async function runStatusUpdateLoop(config: Configuration) {
   const state = new State();

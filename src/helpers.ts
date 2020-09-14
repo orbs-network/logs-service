@@ -10,6 +10,11 @@ export function ensureFileDirectoryExists(filePath: string) {
   mkdirSync(dirname(filePath), { recursive: true });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function errorString(e: any) {
+    return (e && e.stack) || '' + e;
+}
+
 // returns UTC clock time in seconds (similar to unix timestamp / Ethereum block time / RefTime)
 export function getCurrentClockTime() {
   return Math.round(new Date().getTime() / 1000);

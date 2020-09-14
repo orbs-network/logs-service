@@ -1,10 +1,12 @@
 import test from 'ava';
-import { dockerComposeTool } from 'docker-compose-mocha';
+import { dockerComposeTool, getAddressForService } from 'docker-compose-mocha';
 import { unlinkSync, writeFileSync } from 'fs';
 import { exec } from 'child_process';
 import { exec as execPromise } from 'child-process-promise';
 import { retry } from 'ts-retry-promise';
 import { join } from 'path';
+import fetch from 'node-fetch';
+import {defaultConfiguration} from "../src/config";
 
 export class TestEnvironment {
   private envName: string = '';
@@ -13,7 +15,7 @@ export class TestEnvironment {
   constructor(private pathToDockerCompose: string) {}
 
   getAppConfig() {
-    return {};
+    return defaultConfiguration;
   }
 
   // runs all the docker instances with docker-compose
@@ -73,6 +75,24 @@ export class TestEnvironment {
         return JSON.parse(data);
       },
       { retries: 10, delay: 300 }
+    );
+  }
+
+  async fetch(serviceName: string, port: number, path: string) {
+    const addr = await getAddressForService(this.envName, this.pathToDockerCompose, serviceName, port);
+    return await retry(
+        async () => {
+            const url = `http://${addr}/${path}`;
+            this.testLogger(`fetching ${url}`);
+            const response = await fetch(url);
+          const body = await response.text();
+          try {
+            return JSON.parse(body);
+          } catch (e) {
+            throw new Error(`invalid response: \n${body}`);
+          }
+        },
+        { retries: 10, delay: 300 }
     );
   }
 }

@@ -4,7 +4,7 @@ import { writeFileSync } from 'fs';
 import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
 import { Configuration } from './config';
 
-export function writeStatusToDisk(filePath: string, state: State, config: Configuration, err?: Error) {
+export function generateStatusObj(state: State, config: Configuration, err?: Error) {
   const status: JsonResponse = {
     Status: getStatusText(state),
     Timestamp: new Date().toISOString(),
@@ -20,6 +20,11 @@ export function writeStatusToDisk(filePath: string, state: State, config: Config
   if (errorText) {
     status.Error = errorText;
   }
+  return status;
+}
+
+export function writeStatusToDisk(filePath: string, state: State, config: Configuration, err?: Error) {
+  const status = generateStatusObj(state, config, err);
 
   // do the actual writing to local file
   ensureFileDirectoryExists(filePath);
@@ -34,7 +39,11 @@ export function writeStatusToDisk(filePath: string, state: State, config: Config
 
 function getStatusText(state: State) {
   const res = [];
-  if (state.ServiceLaunchTime > getCurrentClockTime()) {
+  if (state.ServiceLaunchTime === getCurrentClockTime()) {
+    res.push('starting');
+  }
+
+  if (state.ServiceLaunchTime < getCurrentClockTime()) {
     res.push('started');
   }
   return res.join(', ');
