@@ -1,9 +1,7 @@
 import { getCurrentClockTime } from '../helpers';
 
 export interface rotationState {
-  currentBatchNumber: number;
-  currentHighestDisplayBatchNumber: number;
-  currentBatchesSnapshotStringfied: string;
+  mapping: { [id: string]: number };
 }
 
 export class State {

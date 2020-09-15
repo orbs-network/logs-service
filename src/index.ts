@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import { Configuration } from './config';
 import cors from 'cors';
 import * as Logger from './logger';
@@ -24,7 +24,10 @@ export function serve(serviceConfig: Configuration) {
     response.status(200).json(body);
   });
 
-  app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+  setupLogsServerApp(app, serviceConfig, state);
+
+  app.use((error: Error, req: Request, res: Response) => {
+    console.log('inside error handler of express', error, typeof error);
     if (error instanceof Error) {
       Logger.error(`Error response to ${req.url}: ${errorString(error)}.`);
       return res.status(500).json({
@@ -32,10 +35,9 @@ export function serve(serviceConfig: Configuration) {
         error: errorString(error),
       });
     }
-    return next(error);
-  });
 
-  setupLogsServerApp(app, serviceConfig, state, );
+    return res.status(500).render('500');
+  });
 
   return app.listen(serviceConfig.Port, '0.0.0.0', () =>
     Logger.log(`Logs service listening on port ${serviceConfig.Port}!`)

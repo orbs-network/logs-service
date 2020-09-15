@@ -24,10 +24,6 @@ function serviceLogsPath(basePath, name) {
         Incase we got disconnected for a longer period and none of the pre-existing state batches exist anymore:
         Increase the latest batch number by 2 and carry on as usual (re-number the existing rotated batches)
 
-    3. Dockerize and push to github
-
-    4. getBatches is the SSOT, and not line 13
-
     5. Identify current has changed (not same inode via fs.watch)
 
 */
@@ -37,26 +33,30 @@ export function setupLogsServerApp(app, config, state) {
 
     const rotationCheckerSingle = async function (service) {
         state.Services[service] = state.Services[service] || {
-            currentBatchNumber: 1,
-            currentHighestDisplayBatchNumber: undefined,
-            currentBatchesSnapshotStringfied: undefined,
+            mapping: {},
         };
 
         console.log(`[${new Date()}] rotation check cycle running..`);
-        const result = await getRotatedFilesInPath(path.join(logsBasePath, 'nn', 'logs'));
-        const currentSnapshot = state.Services[service].currentBatchesSnapshotStringfied || JSON.stringify(result);
 
-        // This might be a weak check, while there are stronger ways to verify this,
-        // we will leave this as so for now.
-        if (currentSnapshot !== JSON.stringify(result)) {
-            // Yay Rotation!
-            console.log('rotation happened!', service);
-            state.Services[service].currentBatchNumber++;
-            state.Services[service].currentHighestDisplayBatchNumber++;
-            state.Services[service].currentBatchesSnapshotStringfied = JSON.stringify(result);
-        } else {
-            console.log('nothing changed', service);
-        }
+        const targetPath = serviceLogsPath(logsBasePath, service);
+
+        console.log('got to getBatchesForPath with', targetPath);
+        const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
+
+        const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
+            const fileInHumanTime = await getLogFileUnixTimeStamp(file);
+            return {
+                fileName: file,
+                unixTs: moment(fileInHumanTime).format('x')
+            };
+        }));
+
+        const lastKnownMaxBatch = Math.max(...Object.values(state.Services[service].mapping));
+        const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
+        const { mapping } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, firstBatchIdIfNoneMatch);
+
+        state.Services[service].mapping = mapping;
+        console.log(mapping);
     }
 
     const getDirectories = async (source) => {
@@ -76,7 +76,8 @@ export function setupLogsServerApp(app, config, state) {
     (async () => {
         await rotationCheckerFn();
     })();
-    const periodicalRotationCheckPid = setInterval(rotationCheckerFn, 5 * 1000);
+    // TODO - make sure we have no overlap calls to rotationCheckerFn
+    const periodicalRotationCheckPid = setInterval(rotationCheckerFn, 15 * 1000);
 
     process.on('beforeExit', () => {
         console.log('Cleaning up before exit..');
@@ -95,8 +96,6 @@ export function setupLogsServerApp(app, config, state) {
 
     async function getBatchesForPath(service) {
         const targetPath = serviceLogsPath(logsBasePath, service);
-
-        console.log('got to getBatchesForPath with', targetPath);
         const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
 
         const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
@@ -111,39 +110,40 @@ export function setupLogsServerApp(app, config, state) {
             };
         }));
 
-        const sortedFiles = sortBy(availableFiles, ['unixTs']);
-        let last;
-
-        for (let i = sortedFiles.length, j = state.Services[service].currentBatchNumber; i > 0; i--, j++) {
-            sortedFiles[i - 1].id = j;
-            last = j;
-        }
+        const { sortedFiles } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, () => { throw new Error('stale mapping, cannot resolve batch ids'); });
 
         const statResultForCurrent = await stat(path.join(targetPath, 'current'));
-        sortedFiles.unshift({
+        sortedFiles.push({
             fileName: 'current',
             batchSize: statResultForCurrent.size,
-            id: last + 1
+            id: (sortedFiles.length === 0) ? 1 : sortedFiles[sortedFiles.length - 1].id + 1
         });
 
-        state.Services[service].currentHighestDisplayBatchNumber = last + 1;
-
+        // detect changes since first getRotatedFilesInPath TODO remove when no IO is perfoermed since getRotatedFilesInPath)
         const availableNonCurrentFilesAgain = await getRotatedFilesInPath(targetPath);
-
         if (JSON.stringify(availableNonCurrentFilesAgain) !== JSON.stringify(availableNonCurrentFiles)) {
             return getBatchesForPath(service);
         }
 
-        return sortedFiles;
+        return sortedFiles.reverse();
     }
 
-    app.get('/logs/:service/tail', (req, res) => {
+    app.get('/logs/:service/tail', async (req, res, next) => {
         const preparedPath = serviceLogsPath(logsBasePath, req.params.service);
+        const currentPath = path.join(preparedPath, 'current');
 
-        const tailSpawn = spawn('tail', ['-F', path.join(preparedPath, 'current')]);
+        if (!(await promisify(fs.exists)(currentPath))) {
+            res.status(404).send('Could not find the requested service or log file').end();
+            return;
+        }
+        const tailSpawn = spawn('tail', ['-F', currentPath]);
 
         tailSpawn.stdout.on('data', (data) => {
             res.write(data);
+        });
+
+        tailSpawn.stderr.on('data', (data) => {
+            next(new Error(data));
         });
 
         tailSpawn.on('close', (code) => {
@@ -169,7 +169,7 @@ export function setupLogsServerApp(app, config, state) {
 
         if (requestedBatch.fileName === 'current') {
             if (follow) {
-                let startBatchNumber = state.Services[service].currentBatchNumber;
+                let startMappingVer = Math.max(...Object.values(state.Services[service].mapping));
                 let requestRotationCheckPid;
 
                 const tailSpawn = spawn('tail', ['-f', '-n', '+1', path.join(servicePath, 'current')]);
@@ -196,10 +196,10 @@ export function setupLogsServerApp(app, config, state) {
                 });
 
                 requestRotationCheckPid = setInterval(() => {
-                    const { currentBatchNumber } = state.Services[req.params.service];
+                    const currentMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
                     console.log('batch tail checking rotation..');
-                    if (currentBatchNumber !== startBatchNumber) {
-                        console.log('rotation occured! currentBatch / startBatch dont match! killing the tail', currentBatchNumber, startBatchNumber);
+                    if (currentMappingVer !== startMappingVer) {
+                        console.log('rotation occured! killing the tail', currentMappingVer, startMappingVer);
                         tailSpawn.kill();
                     }
                 }, 5 * 1000);
@@ -211,11 +211,21 @@ export function setupLogsServerApp(app, config, state) {
         }
     };
 
-    app.get('/logs/:service/batch/:id', fetchBatchFn);
+    app.get('/logs/:service/batch/:id', (req, res, next) => {
+        try {
+            fetchBatchFn(req, res);
+        } catch (err) {
+            next(err);
+        }
+    });
 
-    app.get('/logs/:service', async (req, res) => {
-        const batches = await getBatchesForPath(req.params.service);
-        res.json(batches).end();
+    app.get('/logs/:service', async (req, res, next) => {
+        try {
+            const batches = await getBatchesForPath(req.params.service);
+            res.json(batches).end();
+        } catch (err) {
+            next(err);
+        }
     });
 }
 
@@ -224,3 +234,27 @@ export function setupLogsServerApp(app, config, state) {
 module.exports = {
     setupLogsServerApp
 };
+
+function resolveBatchMapping(lastKnownMapping, service, fileDescriptors, config, firstBatchIdIfNoneMatch) {
+    const mapping = {};
+    let prevBatchNum;
+
+    const sortedFiles = sortBy(fileDescriptors, ['unixTs']).map((item, i) => {
+        let batchNum = lastKnownMapping[item.fileName];
+        if (batchNum === undefined) {
+            if (prevBatchNum) {
+                batchNum = prevBatchNum + 1;
+            } else if (typeof firstBatchIdIfNoneMatch === 'function') {
+                batchNum = firstBatchIdIfNoneMatch();
+            } else {
+                batchNum = firstBatchIdIfNoneMatch;
+            }
+        }
+        item.id = batchNum;
+        mapping[item.fileName] = batchNum;
+        prevBatchNum = batchNum;
+        return item;
+    });
+
+    return { mapping, sortedFiles };
+}
