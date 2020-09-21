@@ -1,26 +1,14 @@
 import * as Logger from './logger';
-import { runStatusUpdateLoop, serve } from '.';
 import { parseArgs } from './cli-args';
+import { readFileSync, existsSync } from 'fs';
+import { State } from './model/state';
+import { serve } from './index';
 
 process.on('uncaughtException', function (err) {
   Logger.log('Uncaught exception on process, shutting down:');
   Logger.error(err.stack);
   process.exit(1);
 });
-
-Logger.log('Service started.');
-const config = parseArgs(process.argv);
-Logger.log(`Input config: '${JSON.stringify(config)}'.`);
-
-// start status update loop.
-runStatusUpdateLoop(config).catch((err) => {
-  Logger.log('Exception thrown from runStatusUpdateLoop, shutting down:');
-  Logger.error(err.stack);
-  process.exit(128);
-});
-
-// start server
-const server = serve(config);
 
 process.on('SIGINT', function () {
   Logger.log('Received SIGINT, shutting down.');
@@ -35,3 +23,24 @@ process.on('SIGINT', function () {
   }
   process.exit();
 });
+
+Logger.log('Service started.');
+const config = parseArgs(process.argv);
+Logger.log(`Input config: '${JSON.stringify(config)}'.`);
+
+const state = new State();
+
+let initState;
+
+if (existsSync(config.StatusJsonPath)) {
+  initState = JSON.parse(readFileSync(config.StatusJsonPath, 'utf-8'));
+}
+
+if (initState !== undefined) {
+  for (let n in initState.Payload.Services) {
+    state.Services[n] = Object.assign({}, initState.Payload.Services[n]);
+  }
+}
+
+// start server
+const server = serve(config, state);

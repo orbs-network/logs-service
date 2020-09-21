@@ -3,6 +3,8 @@ import { State } from './model/state';
 import { writeFileSync } from 'fs';
 import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
 import { Configuration } from './config';
+import { lsof } from 'list-open-files';
+
 
 export function generateStatusObj(state: State, config: Configuration, err?: Error) {
   const status: JsonResponse = {
@@ -12,7 +14,8 @@ export function generateStatusObj(state: State, config: Configuration, err?: Err
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
       Config: config,
-      ...state,
+      Services: state.Services,
+      tails: state.ActiveTails,
     },
   };
 

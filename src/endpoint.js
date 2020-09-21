@@ -7,6 +7,7 @@ const stat = promisify(fs.stat);
 const exec = promisify(_exec);
 const moment = require('moment');
 const { trim, sortBy } = require('lodash');
+const { writeStatusToDisk } = require('./status');
 
 function serviceLogsPath(basePath, name) {
     return path.join(basePath, name, 'logs');
@@ -16,47 +17,47 @@ function serviceLogsPath(basePath, name) {
 /*
     1. Check if we can watch the file system and be notified of events such as file name changed
     just as the tail -F does - that way we can get a much cleaner way of understanding when a rotation has occured and respond instantly.
-
-    2. Persist rotated batches state to disk
-        Upon waking up with pre-existing state:   
-        2.1 Check if some or all the rotated files still exist , if so , keep them intact.
-
-        Incase we got disconnected for a longer period and none of the pre-existing state batches exist anymore:
-        Increase the latest batch number by 2 and carry on as usual (re-number the existing rotated batches)
-
-    5. Identify current has changed (not same inode via fs.watch)
-
+    2. Identify current has changed (not same inode via fs.watch)
+    ---
+    4. Add to status the number of currently open files (lsof)
+    5. Add config for max concurrent expression connections
 */
+
+function removeTailFromActives(state, pid) {
+    const tailIndex = state.ActiveTails.findIndex(t => t.processId === pid);
+    if (tailIndex !== -1) {
+        state.ActiveTails.splice(tailIndex, 1);
+    }
+}
 
 export function setupLogsServerApp(app, config, state) {
     const logsBasePath = config.LogsPath;
-
     const rotationCheckerSingle = async function (service) {
+        const targetPath = serviceLogsPath(logsBasePath, service);
+
         state.Services[service] = state.Services[service] || {
             mapping: {},
         };
 
-        console.log(`[${new Date()}] rotation check cycle running..`);
+        try {
+            const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
 
-        const targetPath = serviceLogsPath(logsBasePath, service);
+            const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
+                const fileInHumanTime = await getLogFileUnixTimeStamp(file);
+                return {
+                    fileName: file,
+                    unixTs: moment(fileInHumanTime).format('x')
+                };
+            }));
 
-        console.log('got to getBatchesForPath with', targetPath);
-        const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
+            const lastKnownMaxBatch = Math.max(...Object.values(state.Services[service].mapping));
+            const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
+            const { mapping } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, firstBatchIdIfNoneMatch);
 
-        const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
-            const fileInHumanTime = await getLogFileUnixTimeStamp(file);
-            return {
-                fileName: file,
-                unixTs: moment(fileInHumanTime).format('x')
-            };
-        }));
-
-        const lastKnownMaxBatch = Math.max(...Object.values(state.Services[service].mapping));
-        const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
-        const { mapping } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, firstBatchIdIfNoneMatch);
-
-        state.Services[service].mapping = mapping;
-        console.log(mapping);
+            state.Services[service].mapping = mapping;
+        } catch (err) {
+            return Promise.resolve(`Couldnt check rotation status for: ${targetPath} with error: ${err.toString()}`);
+        }
     }
 
     const getDirectories = async (source) => {
@@ -66,10 +67,21 @@ export function setupLogsServerApp(app, config, state) {
 
     const rotationCheckerFn = async () => {
         const services = await getDirectories(logsBasePath);
-        console.log('received services: ', services);
+
         for (let n in services) {
             let service = services[n];
-            rotationCheckerSingle(service);
+            await rotationCheckerSingle(service);
+        }
+
+        try {
+            // write status.json file, we don't mind doing this often
+            writeStatusToDisk(config.StatusJsonPath, state, config);
+        } catch (err) {
+            Logger.log('Exception thrown during runStatusUpdateLoop, going back to sleep:');
+            Logger.error(err.stack);
+
+            // always write status.json file (and pass the error)
+            writeStatusToDisk(config.StatusJsonPath, state, config, err);
         }
     };
 
@@ -77,10 +89,9 @@ export function setupLogsServerApp(app, config, state) {
         await rotationCheckerFn();
     })();
     // TODO - make sure we have no overlap calls to rotationCheckerFn
-    const periodicalRotationCheckPid = setInterval(rotationCheckerFn, 15 * 1000);
+    const periodicalRotationCheckPid = setInterval(rotationCheckerFn, config.StatusUpdateLoopIntervalSeconds * 1000);
 
     process.on('beforeExit', () => {
-        console.log('Cleaning up before exit..');
         clearInterval(periodicalRotationCheckPid);
     });
 
@@ -128,7 +139,8 @@ export function setupLogsServerApp(app, config, state) {
         return sortedFiles.reverse();
     }
 
-    app.get('/logs/:service/tail', async (req, res, next) => {
+    const constantTailPath = '/logs/:service/tail';
+    app.get(constantTailPath, async (req, res, next) => {
         const preparedPath = serviceLogsPath(logsBasePath, req.params.service);
         const currentPath = path.join(preparedPath, 'current');
 
@@ -137,6 +149,11 @@ export function setupLogsServerApp(app, config, state) {
             return;
         }
         const tailSpawn = spawn('tail', ['-F', currentPath]);
+        state.ActiveTails.push({
+            processId: tailSpawn.pid,
+            ip: req.ip,
+            path: req.originalUrl,
+        });
 
         tailSpawn.stdout.on('data', (data) => {
             res.write(data);
@@ -144,6 +161,18 @@ export function setupLogsServerApp(app, config, state) {
 
         tailSpawn.stderr.on('data', (data) => {
             next(new Error(data));
+        });
+
+        req.on('close', () => {
+            // request closed unexpectedly
+            removeTailFromActives(state, tailSpawn.pid);
+            tailSpawn.kill();
+        });
+
+        req.on('end', () => {
+            removeTailFromActives(state, tailSpawn.pid);
+            // request ended normally
+            tailSpawn.kill();
         });
 
         tailSpawn.on('close', (code) => {
@@ -175,6 +204,12 @@ export function setupLogsServerApp(app, config, state) {
                 const tailSpawn = spawn('tail', ['-f', '-n', '+1', path.join(servicePath, 'current')]);
                 let initRaceConditionCheck = false;
 
+                state.ActiveTails.push({
+                    processId: tailSpawn.pid,
+                    ip: req.ip,
+                    path: req.originalUrl,
+                });
+
                 tailSpawn.stdout.on('data', async (data) => {
                     const freshBatches = await getBatchesForPath(service);
 
@@ -195,11 +230,22 @@ export function setupLogsServerApp(app, config, state) {
                     res.end();
                 });
 
+                req.on('close', () => {
+                    // request closed unexpectedly
+                    removeTailFromActives(state, tailSpawn.pid);
+                    tailSpawn.kill();
+                });
+
+                req.on('end', () => {
+                    removeTailFromActives(state, tailSpawn.pid);
+                    // request ended normally
+                    tailSpawn.kill();
+                });
+
                 requestRotationCheckPid = setInterval(() => {
                     const currentMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
-                    console.log('batch tail checking rotation..');
                     if (currentMappingVer !== startMappingVer) {
-                        console.log('rotation occured! killing the tail', currentMappingVer, startMappingVer);
+
                         tailSpawn.kill();
                     }
                 }, 5 * 1000);
@@ -229,8 +275,6 @@ export function setupLogsServerApp(app, config, state) {
     });
 }
 
-
-
 module.exports = {
     setupLogsServerApp
 };
@@ -258,3 +302,4 @@ function resolveBatchMapping(lastKnownMapping, service, fileDescriptors, config,
 
     return { mapping, sortedFiles };
 }
+
