@@ -18,8 +18,8 @@ export function serve(serviceConfig: Configuration, state: State) {
     response.status(200).json({});
   });
 
-  app.get('/status', (_request: Request, response: Response) => {
-    const body = generateStatusObj(state, serviceConfig, undefined);
+  app.get('/status', async (_request: Request, response: Response) => {
+    const body = await generateStatusObj(state, serviceConfig, undefined);
     response.status(200).json(body);
   });
 

@@ -5,14 +5,15 @@ import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './
 import { Configuration } from './config';
 import { lsof } from 'list-open-files';
 
-
-export function generateStatusObj(state: State, config: Configuration, err?: Error) {
+export async function generateStatusObj(state: State, config: Configuration, err?: Error) {
+  const lastLsof = await lsof();
   const status: JsonResponse = {
     Status: getStatusText(state),
     Timestamp: new Date().toISOString(),
     Payload: {
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
+      lsofFilesCount: lastLsof[0].files.length,
       Config: config,
       Services: state.Services,
       tails: state.ActiveTails,
@@ -27,8 +28,8 @@ export function generateStatusObj(state: State, config: Configuration, err?: Err
   return status;
 }
 
-export function writeStatusToDisk(filePath: string, state: State, config: Configuration, err?: Error) {
-  const status = generateStatusObj(state, config, err);
+export async function writeStatusToDisk(filePath: string, state: State, config: Configuration, err?: Error) {
+  const status = await generateStatusObj(state, config, err);
 
   // do the actual writing to local file
   ensureFileDirectoryExists(filePath);

@@ -18,9 +18,6 @@ function serviceLogsPath(basePath, name) {
     1. Check if we can watch the file system and be notified of events such as file name changed
     just as the tail -F does - that way we can get a much cleaner way of understanding when a rotation has occured and respond instantly.
     2. Identify current has changed (not same inode via fs.watch)
-    ---
-    4. Add to status the number of currently open files (lsof)
-    5. Add config for max concurrent expression connections
 */
 
 function removeTailFromActives(state, pid) {
@@ -32,6 +29,7 @@ function removeTailFromActives(state, pid) {
 
 export function setupLogsServerApp(app, config, state) {
     const logsBasePath = config.LogsPath;
+
     const rotationCheckerSingle = async function (service) {
         const targetPath = serviceLogsPath(logsBasePath, service);
 
@@ -41,14 +39,10 @@ export function setupLogsServerApp(app, config, state) {
 
         try {
             const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
-
-            const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
-                const fileInHumanTime = await getLogFileUnixTimeStamp(file);
-                return {
-                    fileName: file,
-                    unixTs: moment(fileInHumanTime).format('x')
-                };
-            }));
+            const availableFiles = availableNonCurrentFiles.map(f => {
+                const cleanFilename = f.replace('@', '').replace('.u', '').replace('.s', '');
+                return { fileName: f, cleanFilename };
+            });
 
             const lastKnownMaxBatch = Math.max(...Object.values(state.Services[service].mapping));
             const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
@@ -75,13 +69,13 @@ export function setupLogsServerApp(app, config, state) {
 
         try {
             // write status.json file, we don't mind doing this often
-            writeStatusToDisk(config.StatusJsonPath, state, config);
+            await writeStatusToDisk(config.StatusJsonPath, state, config);
         } catch (err) {
-            Logger.log('Exception thrown during runStatusUpdateLoop, going back to sleep:');
+            Logger.log('Exception thrown during runStatusUpdateLoop!');
             Logger.error(err.stack);
 
             // always write status.json file (and pass the error)
-            writeStatusToDisk(config.StatusJsonPath, state, config, err);
+            await writeStatusToDisk(config.StatusJsonPath, state, config, err);
         }
     };
 
@@ -95,11 +89,6 @@ export function setupLogsServerApp(app, config, state) {
         clearInterval(periodicalRotationCheckPid);
     });
 
-    async function getLogFileUnixTimeStamp(fileName) {
-        const result = await exec(`echo "${fileName.replace('.u', '').replace('.s', '')}" | tai64nlocal`);
-        return trim(result.stdout);
-    }
-
     async function getRotatedFilesInPath(targetPath) {
         const result = await readdir(targetPath);
         return result.filter(f => f.substr(0, 1) === '@');
@@ -109,16 +98,10 @@ export function setupLogsServerApp(app, config, state) {
         const targetPath = serviceLogsPath(logsBasePath, service);
         const availableNonCurrentFiles = await getRotatedFilesInPath(targetPath);
 
-        const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (file) => {
-            const fileInHumanTime = await getLogFileUnixTimeStamp(file);
-            const statResult = await stat(path.join(targetPath, file));
-
-            return {
-                fileName: file,
-                batchSize: statResult.size,
-                fileInHumanTime,
-                unixTs: moment(fileInHumanTime).format('x')
-            };
+        const availableFiles = await Promise.all(availableNonCurrentFiles.map(async (f) => {
+            const statResult = await stat(path.join(targetPath, f));
+            const cleanFilename = f.replace('@', '').replace('.u', '').replace('.s', '');
+            return { fileName: f, cleanFilename, batchSize: statResult.size, };
         }));
 
         const { sortedFiles } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, () => { throw new Error('stale mapping, cannot resolve batch ids'); });
@@ -182,6 +165,7 @@ export function setupLogsServerApp(app, config, state) {
 
     const fetchBatchFn = async (req, res) => {
         const { id, service } = req.params;
+        const { start } = req.query;
         const follow = 'follow' in req.query;
         let startBatchesInJSON;
 
@@ -196,12 +180,15 @@ export function setupLogsServerApp(app, config, state) {
             return;
         }
 
+        const streamOptions = (start > 0) ? { start: parseInt(start) } : {};
+        const tailArgs = (start > 0) ? ['-c', `+${start}`] : ['-n', '+1'];
+
         if (requestedBatch.fileName === 'current') {
             if (follow) {
                 let startMappingVer = Math.max(...Object.values(state.Services[service].mapping));
                 let requestRotationCheckPid;
 
-                const tailSpawn = spawn('tail', ['-f', '-n', '+1', path.join(servicePath, 'current')]);
+                const tailSpawn = spawn('tail', ['-f', ...tailArgs, path.join(servicePath, 'current')]);
                 let initRaceConditionCheck = false;
 
                 state.ActiveTails.push({
@@ -250,10 +237,10 @@ export function setupLogsServerApp(app, config, state) {
                     }
                 }, 5 * 1000);
             } else {
-                fs.createReadStream(path.join(servicePath, requestedBatch.fileName)).pipe(res);
+                fs.createReadStream(path.join(servicePath, requestedBatch.fileName), streamOptions).pipe(res);
             }
         } else {
-            fs.createReadStream(path.join(servicePath, requestedBatch.fileName)).pipe(res);
+            fs.createReadStream(path.join(servicePath, requestedBatch.fileName), streamOptions).pipe(res);
         }
     };
 
@@ -283,7 +270,7 @@ function resolveBatchMapping(lastKnownMapping, service, fileDescriptors, config,
     const mapping = {};
     let prevBatchNum;
 
-    const sortedFiles = sortBy(fileDescriptors, ['unixTs']).map((item, i) => {
+    const sortedFiles = sortBy(fileDescriptors, ['cleanFilename']).map((item, i) => {
         let batchNum = lastKnownMapping[item.fileName];
         if (batchNum === undefined) {
             if (prevBatchNum) {
