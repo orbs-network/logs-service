@@ -4,7 +4,7 @@ import { writeStatusToDisk } from './status';
 import { State } from './model/state';
 import { readFileSync } from 'fs';
 import { exampleConfig } from './config.example';
-import { isNumber, isObject } from 'lodash';
+import { isNumber } from 'lodash';
 
 test.serial.afterEach.always(() => {
   mockFs.restore();
