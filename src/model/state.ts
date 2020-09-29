@@ -1,6 +1,6 @@
 import { getCurrentClockTime } from '../helpers';
 
-export interface rotationState {
+export interface RotationState {
   mapping: { [id: string]: number };
 }
 
@@ -12,7 +12,7 @@ export interface Tailer {
 
 export class State {
   // serializable objects (uppercase) 
-  Services: { [id: string]: rotationState } = {};
+  Services: { [id: string]: RotationState } = {};
 
   ActiveTails: Tailer[] = [];
 

@@ -37,7 +37,7 @@ if (existsSync(config.StatusJsonPath)) {
 }
 
 if (initState !== undefined) {
-  for (let n in initState.Payload.Services) {
+  for (const n in initState.Payload.Services) {
     state.Services[n] = Object.assign({}, initState.Payload.Services[n]);
   }
 }

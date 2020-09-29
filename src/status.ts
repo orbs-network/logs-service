@@ -13,10 +13,10 @@ export async function generateStatusObj(state: State, config: Configuration, err
     Payload: {
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
-      lsofFilesCount: lastLsof[0].files.length,
+      OpenFiles: lastLsof[0].files.length,
       Config: config,
       Services: state.Services,
-      tails: state.ActiveTails,
+      Tails: state.ActiveTails,
     },
   };
 
