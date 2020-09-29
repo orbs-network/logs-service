@@ -9,6 +9,7 @@ export interface Configuration {
 export const defaultConfiguration = {
   Port: 8080,
   SkipBatchesOnMismatch: 3,
+  LogsPath: '/opt/orbs/logs',
   StatusJsonPath: './status/status.json',
   StatusUpdateLoopIntervalSeconds: 20,
 };

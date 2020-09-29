@@ -1,19 +1,25 @@
 import * as Logger from './logger';
 import { State } from './model/state';
 import { writeFileSync } from 'fs';
+import { exec } from 'child-process-promise';
 import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
 import { Configuration } from './config';
-import { lsof } from 'list-open-files';
+
+async function getOpenFilesCount() {
+  const result = await exec('lsof -l | wc -l');
+  return parseInt(result.stdout);
+}
 
 export async function generateStatusObj(state: State, config: Configuration, err?: Error) {
-  const lastLsof = await lsof();
+  const OpenFiles = await getOpenFilesCount();
+
   const status: JsonResponse = {
     Status: getStatusText(state),
     Timestamp: new Date().toISOString(),
     Payload: {
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
-      OpenFiles: lastLsof[0].files.length,
+      OpenFiles,
       Config: config,
       Services: state.Services,
       Tails: state.ActiveTails,

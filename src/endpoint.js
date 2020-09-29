@@ -27,7 +27,7 @@ function removeTailFromActives(state, pid) {
     }
 }
 
-export function setupLogsServerApp(app, config, state) {
+export function setupLogsServerApp(app, config, state, Logger) {
     const logsBasePath = config.LogsPath;
 
     const rotationCheckerSingle = async function (service) {

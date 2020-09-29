@@ -23,7 +23,7 @@ export function serve(serviceConfig: Configuration, state: State) {
     response.status(200).json(body);
   });
 
-  setupLogsServerApp(app, serviceConfig, state);
+  setupLogsServerApp(app, serviceConfig, state, Logger);
 
   app.use((error: Error, req: Request, res: Response, next: Function) => {
     console.log('inside error handler of express', error.message, typeof error, next);
