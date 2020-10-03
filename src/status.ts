@@ -4,6 +4,7 @@ import { writeFileSync } from 'fs';
 import { exec } from 'child-process-promise';
 import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
 import { Configuration } from './config';
+import * as fs from "fs";
 
 async function getOpenFilesCount() {
   const result = await exec('lsof -l | wc -l');
@@ -27,7 +28,7 @@ export async function generateStatusObj(state: State, config: Configuration, err
   };
 
   // include error field if found errors
-  const errorText = getErrorText(state, err);
+  const errorText = getErrorText(state, config, err);
   if (errorText) {
     status.Error = errorText;
   }
@@ -60,12 +61,16 @@ function getStatusText(state: State) {
   return res.join(', ');
 }
 
-function getErrorText(state: State, err?: Error) {
+function getErrorText(state: State, config: Configuration, err?: Error) {
   const res = [];
 
   if (state.ServiceLaunchTime === 0) {
     // TODO replace with a meaning full inspection of the state
     res.push('Invalid launch time');
+  }
+
+  if(!fs.existsSync(config.LogsPath)) {
+    res.push('Disk access error');
   }
 
   if (err) {
