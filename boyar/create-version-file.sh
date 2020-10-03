@@ -13,7 +13,7 @@ if [[ ! -z "$CIRCLE_TAG" ]]; then
 
     echo "$CIRCLE_TAG" > .version
 else
-    LATEST_SEMVER=$(git describe --tags --abbrev=0; [[ $? ]] && echo v0.0.0)
+    LATEST_SEMVER=$(git describe --tags --abbrev=0)
     SHORT_COMMIT=$(git rev-parse HEAD | cut -c1-8)
     echo "$LATEST_SEMVER-$SHORT_COMMIT" > .version
 fi
