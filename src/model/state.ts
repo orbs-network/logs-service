@@ -11,7 +11,7 @@ export interface Tailer {
 }
 
 export class State {
-  // serializable objects (uppercase) 
+  // serializable objects (uppercase)
   Services: { [id: string]: RotationState } = {};
 
   ActiveTails: Tailer[] = [];

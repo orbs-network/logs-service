@@ -10,7 +10,10 @@ const { trim, sortBy } = require('lodash');
 const { writeStatusToDisk } = require('./status');
 
 function serviceLogsPath(basePath, name) {
-    return path.join(basePath, name, 'logs');
+    if (name === 'logs-service') {
+        return basePath;
+    }
+    return path.join(basePath, name);
 }
 
 // @TODO
