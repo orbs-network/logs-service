@@ -1,0 +1,587 @@
+{
+  "Status": "started",
+  "Timestamp": "2020-10-06T19:08:03.634Z",
+  "Payload": {
+    "Uptime": 21040,
+    "MemoryBytesUsed": 21807352,
+    "OpenFiles": 14308,
+    "Config": {
+      "Port": 3030,
+      "SkipBatchesOnMismatch": 3,
+      "LogsPath": "/Users/itamar/dev/orbs/logs-service/logs-root",
+      "StatusJsonPath": "./status/status.json",
+      "StatusUpdateLoopIntervalSeconds": 20
+    },
+    "Services": {
+      "nn": {
+        "mapping": {
+          "@400000005f7c4c611ac69f34.u": 8,
+          "@400000005f7c6e6f05aa66bc.u": 9
+        }
+      },
+      "xx": {
+        "mapping": {}
+      },
+      "yy": {
+        "mapping": {}
+      }
+    },
+    "Tails": [
+      {
+        "processId": 52559,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 52804,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 52852,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 52897,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 52910,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53016,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53033,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53064,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53070,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53079,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53084,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53097,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53102,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53116,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53129,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53135,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53147,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53162,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53167,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53185,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53190,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53199,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53205,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53216,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53221,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53231,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53236,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53245,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53270,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53275,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53284,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53290,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53312,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53321,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53330,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53339,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53349,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53358,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53364,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53369,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53378,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53384,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53395,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53405,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53410,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53420,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53438,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53450,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53455,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53460,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53489,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53496,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53504,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53520,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53529,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53538,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53547,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53556,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53561,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53571,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53587,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53592,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53604,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53616,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53624,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53633,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53642,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53647,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53656,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53667,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53673,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53684,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53689,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53701,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53710,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53716,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53726,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53731,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53757,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53763,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53769,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53786,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53795,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53800,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53812,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53817,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53826,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53835,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53842,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53851,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53862,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53868,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53880,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53886,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53901,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53909,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53921,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53933,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53941,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53947,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53956,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53966,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53981,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53986,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 53995,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54006,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54025,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54030,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54039,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54049,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      },
+      {
+        "processId": 54059,
+        "ip": "127.0.0.1",
+        "path": "/logs/nn/batch/10?follow"
+      }
+    ]
+  }
+}

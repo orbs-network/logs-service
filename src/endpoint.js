@@ -175,7 +175,15 @@ export function setupLogsServerApp(app, config, state, Logger) {
         const servicePath = serviceLogsPath(logsBasePath, service);
 
         const batches = await getBatchesForPath(service);
-        startBatchesInJSON = JSON.stringify(batches);
+
+        const flatr = b => {
+            return {
+                f: b.fileName,
+                id: b.id,
+            };
+        };
+
+        startBatchesInJSON = JSON.stringify(batches.map(flatr));
         const requestedBatch = batches.find(batch => parseInt(batch.id) === parseInt(id));
 
         if (!requestedBatch) {
@@ -183,12 +191,20 @@ export function setupLogsServerApp(app, config, state, Logger) {
             return;
         }
 
-        const streamOptions = (start > 0) ? { start: parseInt(start) } : {};
-        const tailArgs = (start > 0) ? ['-c', `+${start}`] : ['-n', '+1'];
+        let streamOptions = {};
+        let tailArgs = ['-n', '+1'];
+
+        if (start > 0) {
+            // if (parseInt(start) >= requestedBatch.batchSize) {
+            //     return Promise.reject(new Error(`Cannot request data from an offset bigger than the batch size itself! Batch requested: ${requestedBatch.id}, size (bytes): ${requestedBatch.batchSize}, requested from block: ${start}`));
+            // }
+            streamOptions = { start: parseInt(start) };
+            tailArgs = ['-c', `+${start}`];
+        }
 
         if (requestedBatch.fileName === 'current') {
             if (follow) {
-                let startMappingVer = Math.max(...Object.values(state.Services[service].mapping));
+                let startMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
                 let requestRotationCheckPid;
 
                 const tailSpawn = spawn('tail', ['-f', ...tailArgs, path.join(servicePath, 'current')]);
@@ -203,10 +219,11 @@ export function setupLogsServerApp(app, config, state, Logger) {
                 tailSpawn.stdout.on('data', async (data) => {
                     const freshBatches = await getBatchesForPath(service);
 
-                    if (!initRaceConditionCheck && startBatchesInJSON !== JSON.stringify(freshBatches)) {
+                    if (!initRaceConditionCheck && startBatchesInJSON !== JSON.stringify(freshBatches.map(flatr))) {
                         // This race condition means that since the previous call to get batches from the file system
                         // rotation happened, so we should re-visit the batches.
                         initRaceConditionCheck = true;
+                        removeTailFromActives(state, tailSpawn.pid);
                         tailSpawn.kill();
                         return fetchBatchFn(req, res);
                     }
@@ -215,7 +232,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
                     res.write(data);
                 });
 
-                tailSpawn.on('close', (code) => {
+                tailSpawn.on('close', (code) => {                    
                     clearInterval(requestRotationCheckPid);
                     res.end();
                 });
@@ -234,8 +251,10 @@ export function setupLogsServerApp(app, config, state, Logger) {
 
                 requestRotationCheckPid = setInterval(() => {
                     const currentMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
+                    console.log('checking whether we should kill the tail (current)', currentMappingVer);
                     if (currentMappingVer !== startMappingVer) {
-
+                        removeTailFromActives(state, tailSpawn.pid);
+                        console.log('checking whether we should kill the tail (current,start)', currentMappingVer, startMappingVer);
                         tailSpawn.kill();
                     }
                 }, 5 * 1000);
@@ -247,9 +266,9 @@ export function setupLogsServerApp(app, config, state, Logger) {
         }
     };
 
-    app.get('/logs/:service/batch/:id', (req, res, next) => {
+    app.get('/logs/:service/batch/:id', async (req, res, next) => {
         try {
-            fetchBatchFn(req, res);
+            await fetchBatchFn(req, res);
         } catch (err) {
             next(err);
         }
