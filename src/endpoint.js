@@ -10,7 +10,7 @@ const { trim, sortBy } = require('lodash');
 const { writeStatusToDisk } = require('./status');
 
 function serviceLogsPath(basePath, name) {
-    if (name === 'logs-service') {
+    if (name === 'logs-service') { // TODO - remove when boyar mounts all alike
         return basePath;
     }
     return path.join(basePath, name);
