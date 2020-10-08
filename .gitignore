@@ -5,6 +5,8 @@ exec/
 # version file
 .version
 
+status/status.json
+
 # Logs
 logs
 *.log
