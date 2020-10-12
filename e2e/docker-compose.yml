@@ -1,5 +1,11 @@
-version: '3'
+version: "3"
 services:
+    writer-service:
+        build:
+            context: ./writer
+            dockerfile: ./writer/Dockerfile-writer.test
+        volumes:
+            - ./e2e-logs:/opt/orbs/logs
     app:
         build:
             context: .
