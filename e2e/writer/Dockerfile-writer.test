@@ -1,0 +1,8 @@
+FROM node:12-alpine
+
+RUN apk add --no-cache daemontools --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing
+
+COPY writer.js .
+RUN npm install express
+CMD node writer.js | multilog s16777215 n10 /opt/orbs/logs/writer
+
