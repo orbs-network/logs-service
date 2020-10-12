@@ -6,3 +6,5 @@ services:
             dockerfile: ./Dockerfile-app.test
         ports:
             - 8080:8080
+        volumes:
+            - ./e2e-logs:/opt/orbs/logs

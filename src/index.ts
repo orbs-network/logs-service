@@ -12,6 +12,7 @@ export function serve(serviceConfig: Configuration, state: State) {
 
   // DEV_NOTE : O.L : Allows access from any domain.
   app.use(cors());
+  app.set('trust proxy', true);
   app.set('json spaces', 2);
 
   app.get('/', (_: Request, response: Response) => {

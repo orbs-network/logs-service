@@ -1,6 +1,6 @@
 import test from 'ava';
 import { dockerComposeTool, getAddressForService } from 'docker-compose-mocha';
-import { unlinkSync, writeFileSync } from 'fs';
+import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
 import { exec } from 'child_process';
 import { exec as execPromise } from 'child-process-promise';
 import { retry } from 'ts-retry-promise';
@@ -16,6 +16,10 @@ export class TestEnvironment {
 
   getAppConfig() {
     return defaultConfiguration;
+  }
+
+  getLogsPath() {
+    return join(__dirname, 'e2e-logs');
   }
 
   // runs all the docker instances with docker-compose
@@ -61,6 +65,13 @@ export class TestEnvironment {
     });
 
     test.serial.before((t) => t.log('[E2E] driver launchServices() finished'));
+  }
+
+  resetLogDir(serviceName: string): string {
+    const logPath = join(this.getLogsPath(), serviceName);
+    rmdirSync(logPath, { recursive: true });
+    mkdirSync(logPath);
+    return logPath;
   }
 
   // inspired by https://github.com/applitools/docker-compose-mocha/blob/master/lib/get-logs-for-service.js

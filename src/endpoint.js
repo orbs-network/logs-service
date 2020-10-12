@@ -1,13 +1,11 @@
 const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
-const { spawn, exec: _exec } = require('child_process');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
-const exec = promisify(_exec);
-const moment = require('moment');
-const { trim, sortBy } = require('lodash');
+const { sortBy } = require('lodash');
 const { writeStatusToDisk } = require('./status');
+const { tail } = require('./tail');
 
 function serviceLogsPath(basePath, name) {
     if (name === 'logs-service') { // TODO - remove when boyar mounts all alike
@@ -22,13 +20,6 @@ function serviceLogsPath(basePath, name) {
     just as the tail -F does - that way we can get a much cleaner way of understanding when a rotation has occured and respond instantly.
     2. Identify current has changed (not same inode via fs.watch)
 */
-
-function removeTailFromActives(state, pid) {
-    const tailIndex = state.ActiveTails.findIndex(t => t.processId === pid);
-    if (tailIndex !== -1) {
-        state.ActiveTails.splice(tailIndex, 1);
-    }
-}
 
 export function setupLogsServerApp(app, config, state, Logger) {
     const logsBasePath = config.LogsPath;
@@ -65,9 +56,8 @@ export function setupLogsServerApp(app, config, state, Logger) {
     const rotationCheckerFn = async () => {
         const services = await getDirectories(logsBasePath);
 
-        for (let n in services) {
-            let service = services[n];
-            await rotationCheckerSingle(service);
+        for (const s of services) {
+            await rotationCheckerSingle(s);
         }
 
         try {
@@ -107,7 +97,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
             return { fileName: f, cleanFilename, batchSize: statResult.size, };
         }));
 
-        const { sortedFiles } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, () => { throw new Error('stale mapping, cannot resolve batch ids'); });
+        const { sortedFiles } = resolveBatchMapping(state, service, availableFiles, config, () => { throw new Error('stale mapping, cannot resolve batch ids'); });
 
         const statResultForCurrent = await stat(path.join(targetPath, 'current'));
         sortedFiles.push({
@@ -131,46 +121,35 @@ export function setupLogsServerApp(app, config, state, Logger) {
         const currentPath = path.join(preparedPath, 'current');
 
         if (!(await promisify(fs.exists)(currentPath))) {
-            res.status(404).send('Could not find the requested service or log file').end();
+            res.status(404).end();
             return;
         }
-        const tailSpawn = spawn('tail', ['-F', currentPath]);
-        state.ActiveTails.push({
-            processId: tailSpawn.pid,
-            ip: req.ip,
-            path: req.originalUrl,
-        });
+        const tailSpawn = tail(state, req, ['-F', currentPath]);
 
         tailSpawn.stdout.on('data', (data) => {
             res.write(data);
         });
 
+        tailSpawn.stdout.on('close', () => {
+            // no more data will be received
+            res.end();
+        });
+
         tailSpawn.stderr.on('data', (data) => {
             next(new Error(data));
+            //TODO not sure we need to print out any error if data was already sent - just close the connection
         });
 
-        req.on('close', () => {
-            // request closed unexpectedly
-            removeTailFromActives(state, tailSpawn.pid);
+        res.on('close', () => {
+            // request ended normally or abnormally
             tailSpawn.kill();
-        });
-
-        req.on('end', () => {
-            removeTailFromActives(state, tailSpawn.pid);
-            // request ended normally
-            tailSpawn.kill();
-        });
-
-        tailSpawn.on('close', (code) => {
-            res.end();
         });
     });
 
-    const fetchBatchFn = async (req, res) => {
+    const fetchBatchFn = async (req, res, next) => {
         const { id, service } = req.params;
         const { start } = req.query;
         const follow = 'follow' in req.query;
-        let startBatchesInJSON;
 
         const servicePath = serviceLogsPath(logsBasePath, service);
 
@@ -183,7 +162,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
             };
         };
 
-        startBatchesInJSON = JSON.stringify(batches.map(flatr));
+        const startBatchesInJSON = JSON.stringify(batches.map(flatr));
         const requestedBatch = batches.find(batch => parseInt(batch.id) === parseInt(id));
 
         if (!requestedBatch) {
@@ -204,17 +183,11 @@ export function setupLogsServerApp(app, config, state, Logger) {
 
         if (requestedBatch.fileName === 'current') {
             if (follow) {
-                let startMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
+                const startMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
                 let requestRotationCheckPid;
 
-                const tailSpawn = spawn('tail', ['-f', ...tailArgs, path.join(servicePath, 'current')]);
+                const tailSpawn = tail(state, req, ['-f', ...tailArgs, path.join(servicePath, 'current')]);
                 let initRaceConditionCheck = false;
-
-                state.ActiveTails.push({
-                    processId: tailSpawn.pid,
-                    ip: req.ip,
-                    path: req.originalUrl,
-                });
 
                 tailSpawn.stdout.on('data', async (data) => {
                     const freshBatches = await getBatchesForPath(service);
@@ -223,29 +196,26 @@ export function setupLogsServerApp(app, config, state, Logger) {
                         // This race condition means that since the previous call to get batches from the file system
                         // rotation happened, so we should re-visit the batches.
                         initRaceConditionCheck = true;
-                        removeTailFromActives(state, tailSpawn.pid);
                         tailSpawn.kill();
-                        return fetchBatchFn(req, res);
+                        return fetchBatchFn(req, res, next);
                     }
 
                     initRaceConditionCheck = true;
                     res.write(data);
                 });
 
-                tailSpawn.on('close', (code) => {                    
+                tailSpawn.stdout.on('close', () => {
+                    // no more data will be received
                     clearInterval(requestRotationCheckPid);
                     res.end();
                 });
 
-                req.on('close', () => {
-                    // request closed unexpectedly
-                    removeTailFromActives(state, tailSpawn.pid);
-                    tailSpawn.kill();
+                tailSpawn.stderr.on('data', (data) => {
+                    next(new Error(data));
                 });
 
-                req.on('end', () => {
-                    removeTailFromActives(state, tailSpawn.pid);
-                    // request ended normally
+                res.on('close', () => {
+                    // request ended normally or abnormally
                     tailSpawn.kill();
                 });
 
@@ -253,7 +223,6 @@ export function setupLogsServerApp(app, config, state, Logger) {
                     const currentMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
                     console.log('checking whether we should kill the tail (current)', currentMappingVer);
                     if (currentMappingVer !== startMappingVer) {
-                        removeTailFromActives(state, tailSpawn.pid);
                         console.log('checking whether we should kill the tail (current,start)', currentMappingVer, startMappingVer);
                         tailSpawn.kill();
                     }
@@ -268,7 +237,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
 
     app.get('/logs/:service/batch/:id', async (req, res, next) => {
         try {
-            await fetchBatchFn(req, res);
+            await fetchBatchFn(req, res, next);
         } catch (err) {
             next(err);
         }
@@ -288,7 +257,13 @@ module.exports = {
     setupLogsServerApp
 };
 
-function resolveBatchMapping(lastKnownMapping, service, fileDescriptors, config, firstBatchIdIfNoneMatch) {
+function resolveBatchMapping(state, service, fileDescriptors, config, firstBatchIdIfNoneMatch) {
+
+    if (state.Services[service] === undefined) {
+        state.Services[service] = { mapping: {}}
+    }
+
+    const lastKnownMapping = state.Services[service].mapping;
     const mapping = {};
     let prevBatchNum;
 

@@ -1,18 +1,31 @@
 import * as Logger from './logger';
-import { State } from './model/state';
+import { pruneTailLists } from './tail';
+import { State, Tailer } from './model/state';
 import { writeFileSync } from 'fs';
 import { exec } from 'child-process-promise';
 import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
 import { Configuration } from './config';
-import * as fs from "fs";
+import * as fs from 'fs';
 
 async function getOpenFilesCount() {
   const result = await exec('lsof -l | wc -l');
   return parseInt(result.stdout);
 }
 
+function renderTailProcessDesc(t: Tailer) {
+  return {
+    processId: t.childProcess.pid,
+    status: `exit code: ${(t.childProcess as any).exitCode} signal: ${(t.childProcess as any).signalCode}`,
+    start: t.start ? t.start.toISOString() : 'NA',
+    end: t.end ? t.end.toISOString() : 'NA',
+    path: t.request.path,
+    ip: t.request.ip,
+  };
+}
+
 export async function generateStatusObj(state: State, config: Configuration, err?: Error) {
   const OpenFiles = await getOpenFilesCount();
+  pruneTailLists(state);
 
   const status: JsonResponse = {
     Status: getStatusText(state),
@@ -23,7 +36,8 @@ export async function generateStatusObj(state: State, config: Configuration, err
       OpenFiles,
       Config: config,
       Services: state.Services,
-      Tails: state.ActiveTails,
+      TailsActive: state.ActiveTails.map(renderTailProcessDesc),
+      TailsTerm: state.ActiveTails.map(renderTailProcessDesc),
     },
   };
 
@@ -69,7 +83,7 @@ function getErrorText(state: State, config: Configuration, err?: Error) {
     res.push('Invalid launch time');
   }
 
-  if(!fs.existsSync(config.LogsPath)) {
+  if (!fs.existsSync(config.LogsPath)) {
     res.push('Disk access error');
   }
 
