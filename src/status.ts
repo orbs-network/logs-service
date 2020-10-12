@@ -27,8 +27,11 @@ export async function generateStatusObj(state: State, config: Configuration, err
   const OpenFiles = await getOpenFilesCount();
   pruneTailLists(state);
 
+  // include error field if found errors
+  const errorText = getErrorText(state, config, err);
   const status: JsonResponse = {
-    Status: getStatusText(state),
+    Status: errorText ? 'Error' : 'OK',
+    Error: errorText,
     Timestamp: new Date().toISOString(),
     Payload: {
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
@@ -41,11 +44,6 @@ export async function generateStatusObj(state: State, config: Configuration, err
     },
   };
 
-  // include error field if found errors
-  const errorText = getErrorText(state, config, err);
-  if (errorText) {
-    status.Error = errorText;
-  }
   return status;
 }
 
@@ -63,18 +61,6 @@ export async function writeStatusToDisk(filePath: string, state: State, config: 
 
 // helpers
 
-function getStatusText(state: State) {
-  const res = [];
-  if (state.ServiceLaunchTime === getCurrentClockTime()) {
-    res.push('starting');
-  }
-
-  if (state.ServiceLaunchTime < getCurrentClockTime()) {
-    res.push('started');
-  }
-  return res.join(', ');
-}
-
 function getErrorText(state: State, config: Configuration, err?: Error) {
   const res = [];
 
@@ -90,5 +76,5 @@ function getErrorText(state: State, config: Configuration, err?: Error) {
   if (err) {
     res.push(`Error: ${err.message}.`);
   }
-  return res.join(' ');
+  return (res.length) ? res.join(',') : undefined;
 }
