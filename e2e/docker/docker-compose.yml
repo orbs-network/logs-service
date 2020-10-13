@@ -9,9 +9,7 @@ services:
         volumes:
             - ./_e2e-logs:/opt/orbs/logs
         environment:
-            - MOCK_SERVICE_NAME=aService
-            - FILE_MAX_SIZE=512
-            - FILE_MAX_COUNT=10
+            - MOCK_SERVICE_NAME=aService            
     app:
         build:
             context: ""

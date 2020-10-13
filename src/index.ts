@@ -26,8 +26,8 @@ export function serve(serviceConfig: Configuration, state: State) {
 
   setupLogsServerApp(app, serviceConfig, state, Logger);
 
-  app.use((error: Error, req: Request, res: Response, next: Function) => {
-    console.log('inside error handler of express', error.message, typeof error, next);
+  app.use((error: Error, req: Request, res: Response, _: Function) => {
+    console.log('inside error handler of express', error.message, typeof error);
     if (error instanceof Error) {
       Logger.error(`Error response to ${req.url}: ${errorString(error)}.`);
       return res.status(500).json({

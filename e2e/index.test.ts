@@ -1,5 +1,5 @@
 import test from 'ava';
-import {sleep, TestEnvironment} from './driver';
+import { sleep, TestEnvironment } from './driver';
 import { join } from 'path';
 import { deepDataMatcher, isPositiveNumber } from './deep-matcher';
 
@@ -44,26 +44,8 @@ test.serial('[E2E] get logs summary', async (t) => {
 
   t.timeout(60 * 1000);
 
-  // write some logs:
-  const logData = 'some log line';
-  const expectedBatchSize = logData.length + "\n".length;
-
-  // let accumulatedLogSize = 0;
-  // while (accumulatedLogSize < 1024) {
-  //   const postRes = await driver.writerLog(logData);
-  //   t.deepEqual(postRes, 200);
-  //   accumulatedLogSize += expectedBatchSize;
-  // }
-  // t.log('wrote log:', accumulatedLogSize);
-
-  const postRes = await driver.writerLog(logData);
-  t.deepEqual(postRes, 200);
-
-  // TODO FLAKY
-  await sleep(1000);
-
-  const descriptor = await driver.fetchJson(`logs/aService`);
-  t.log('logs descriptor:', JSON.stringify(descriptor, null, 2));
+  await driver.writerLog('just a small string');
+  let descriptor = await driver.fetchJson(`logs/aService`);
 
   t.truthy(Array.isArray(descriptor) && descriptor.length === 1);
   const errors = deepDataMatcher(descriptor[0], {
@@ -71,16 +53,28 @@ test.serial('[E2E] get logs summary', async (t) => {
     batchSize: isPositiveNumber,
     id: 1,
   });
-
   t.deepEqual(errors, []);
+
+  // write some logs:
+  const logData = 'some log line' + `\nsome log line`.repeat(300);
+
+  let postRes = await driver.writerLog(logData);
+  t.deepEqual(postRes, 200);
+
+  // After first rotation must wait for {StatusUpdateLoopIntervalSeconds} 
+  await sleep(3000);
+
+  const descriptorAfterRotation = await driver.fetchJson(`logs/aService`);
+  t.log('logs descriptor after the rotation:', JSON.stringify(descriptorAfterRotation, null, 2));
+  t.truthy(Array.isArray(descriptorAfterRotation) && descriptorAfterRotation.length > 1);
 });
 
-async function waitUntilServiceFound(t: any, serviceName: string) : Promise<any> {
+async function waitUntilServiceFound(t: any, serviceName: string): Promise<any> {
   let status: any;
   while (
-      status === undefined ||
-      status.Services === undefined ||
-      status.Services[serviceName] === undefined ) {
+    status === undefined ||
+    status.Services === undefined ||
+    status.Services[serviceName] === undefined) {
     try {
       status = (await driver.fetchJson(`status`));
       t.log('status', JSON.stringify(status));

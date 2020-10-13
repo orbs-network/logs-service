@@ -21,10 +21,13 @@ function serviceLogsPath(basePath, name) {
     2. Identify current has changed (not same inode via fs.watch)
 */
 
+let rotationCheckerLock = false;
+
 export function setupLogsServerApp(app, config, state, Logger) {
     const logsBasePath = config.LogsPath;
 
     const rotationCheckerSingle = async function (service) {
+        
         const targetPath = serviceLogsPath(logsBasePath, service);
 
         state.Services[service] = state.Services[service] || {
@@ -40,10 +43,10 @@ export function setupLogsServerApp(app, config, state, Logger) {
 
             const lastKnownMaxBatch = Math.max(...Object.values(state.Services[service].mapping));
             const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
-            const { mapping } = resolveBatchMapping(state.Services[service].mapping, service, availableFiles, config, firstBatchIdIfNoneMatch);
+            const { mapping } = resolveBatchMapping(state, service, availableFiles, config, firstBatchIdIfNoneMatch);
 
-            state.Services[service].mapping = mapping;
-        } catch (err) {
+            state.Services[service].mapping = mapping;            
+        } catch (err) {            
             return Promise.resolve(`Couldnt check rotation status for: ${targetPath} with error: ${err.toString()}`);
         }
     }
@@ -54,21 +57,31 @@ export function setupLogsServerApp(app, config, state, Logger) {
     };
 
     const rotationCheckerFn = async () => {
-        const services = await getDirectories(logsBasePath);
-
-        for (const s of services) {
-            await rotationCheckerSingle(s);
+        if (rotationCheckerLock) {
+            return;
         }
 
-        try {
-            // write status.json file, we don't mind doing this often
-            await writeStatusToDisk(config.StatusJsonPath, state, config);
-        } catch (err) {
-            Logger.log('Exception thrown during runStatusUpdateLoop!');
-            Logger.error(err.stack);
+        rotationCheckerLock = true;
 
-            // always write status.json file (and pass the error)
-            await writeStatusToDisk(config.StatusJsonPath, state, config, err);
+        try {
+            const services = await getDirectories(logsBasePath);
+
+            for (const s of services) {
+                await rotationCheckerSingle(s);
+            }
+
+            try {
+                // write status.json file, we don't mind doing this often
+                await writeStatusToDisk(config.StatusJsonPath, state, config);
+            } catch (err) {
+                Logger.log('Exception thrown during runStatusUpdateLoop!');
+                Logger.error(err.stack);
+
+                // always write status.json file (and pass the error)
+                await writeStatusToDisk(config.StatusJsonPath, state, config, err);
+            }
+        } catch (e) { } finally {
+            rotationCheckerLock = false;
         }
     };
 
@@ -258,21 +271,20 @@ module.exports = {
 };
 
 function resolveBatchMapping(state, service, fileDescriptors, config, firstBatchIdIfNoneMatch) {
-
     if (state.Services[service] === undefined) {
-        state.Services[service] = { mapping: {}}
+        state.Services[service] = { mapping: {} }
     }
 
     const lastKnownMapping = state.Services[service].mapping;
     const mapping = {};
-    let prevBatchNum;
+    let prevBatchNum;    
 
     const sortedFiles = sortBy(fileDescriptors, ['cleanFilename']).map((item, i) => {
         let batchNum = lastKnownMapping[item.fileName];
         if (batchNum === undefined) {
             if (prevBatchNum) {
                 batchNum = prevBatchNum + 1;
-            } else if (typeof firstBatchIdIfNoneMatch === 'function') {
+            } else if (typeof firstBatchIdIfNoneMatch === 'function') {                
                 batchNum = firstBatchIdIfNoneMatch();
             } else {
                 batchNum = firstBatchIdIfNoneMatch;

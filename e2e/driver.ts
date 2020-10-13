@@ -29,7 +29,9 @@ export class TestEnvironment {
       t.log('[E2E] write config file for app and clear logs folder - before dockers go up');
       try {
         rmdirSync(this.pathToLogs, { recursive: true });
-      } catch (err) { }
+      } catch (err) {
+        console.log(err);
+      }
       mkdirSync(this.pathToLogs, { recursive: true });
     });
 

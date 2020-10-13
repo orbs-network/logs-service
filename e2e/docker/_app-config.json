@@ -1,7 +1,0 @@
-{
-  "Port": 8080,
-  "SkipBatchesOnMismatch": 3,
-  "LogsPath": "/opt/orbs/logs",
-  "StatusJsonPath": "./status/status.json",
-  "StatusUpdateLoopIntervalSeconds": 2
-}
