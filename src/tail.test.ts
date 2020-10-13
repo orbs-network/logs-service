@@ -67,7 +67,7 @@ test.serial('tails with -F', async (t) => {
     let readText = '';
     cp.stdout.on('data', (text: string) => { readText += text.toString()});
 
-    // wait until we read the contents of the file
+    t.log('waiting for tail to read first file...');
     while (readText != fileText1) {
         await sleep(5);
     }
@@ -75,7 +75,7 @@ test.serial('tails with -F', async (t) => {
     fs.renameSync(tmpFileName1, tmpFileName2);
     fs.writeFileSync(tmpFileName1, fileText2);
 
-    t.log('waiting for tail to pick up on rotated file...');
+    t.log('waiting for tail to pick up on file rotation and read second file...');
     while (readText != fileText1 + fileText2) {
         await sleep(5);
     }
