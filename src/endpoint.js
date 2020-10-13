@@ -152,10 +152,6 @@ export function setupLogsServerApp(app, config, state, Logger) {
         const follow = 'follow' in req.query;
 
         const servicePath = serviceLogsPath(logsBasePath, service);
-        if (!fs.existsSync(servicePath)) {
-            res.status(404).end();
-            return;
-        }
 
         const batches = await getBatchesForPath(service);
 
