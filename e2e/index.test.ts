@@ -1,11 +1,9 @@
 import test from 'ava';
-import { TestEnvironment } from './driver';
+import {sleep, TestEnvironment} from './driver';
 import { join } from 'path';
-import { sleep } from '../src/helpers';
 import { deepDataMatcher, isPositiveNumber } from './deep-matcher';
-import { mkdirSync, writeFileSync } from 'fs';
 
-const driver = new TestEnvironment(join(__dirname, 'docker-compose.yml'));
+const driver = new TestEnvironment(join(__dirname, 'docker'));
 driver.launchServices();
 
 test.serial('[E2E] service is up, and writing status file', async (t) => {
@@ -32,7 +30,7 @@ test.serial('[E2E] serving status over http', async (t) => {
   await sleep(1000);
   t.log(`Port`, driver.getAppConfig().Port);
 
-  const status = await driver.fetch('app', driver.getAppConfig().Port, `status`);
+  const status = await driver.fetchJson(`status`);
   t.log('status:', JSON.stringify(status, null, 2));
 
   const errors = deepDataMatcher(status.Payload, {
@@ -41,26 +39,32 @@ test.serial('[E2E] serving status over http', async (t) => {
   t.deepEqual(errors, []);
 });
 
-test.serial('[E2E] serve one line of logs', async (t) => {
+test.serial('[E2E] get logs summary', async (t) => {
   t.log('started');
   driver.testLogger = t.log;
 
-  // write some logs:
-  const logPath = driver.resetLogDir('aService');
-  writeFileSync(join(logPath, 'current'), 'some log line');
-
   t.timeout(60 * 1000);
 
-  await sleep(1000);
-  t.log(`Port`, driver.getAppConfig().Port);
+  // write some logs:
+  const logData = 'some log line';
+  const expectedBatchSize = logData.length + "\n".length;
 
-  const descriptor = await driver.fetch('app', driver.getAppConfig().Port, `logs/aService`);
-  t.log('status:', JSON.stringify(descriptor, null, 2));
+  // TODO FLAKY - looks like a real bug
+  t.log('detected services', await waitUntilServiceFound(t, 'aService'));
+
+  const postRes = await driver.writerLog(logData);
+  t.log('wrote log:', postRes);
+
+  // TODO FLAKY
+  await sleep(5000);
+
+  const descriptor = await driver.fetchJson(`logs/aService`);
+  t.log('logs descriptor:', JSON.stringify(descriptor, null, 2));
 
   t.truthy(Array.isArray(descriptor) && descriptor.length === 1);
   const errors = deepDataMatcher(descriptor[0], {
     fileName: 'current',
-    batchSize: 13,
+    batchSize: expectedBatchSize,
     id: 1,
   });
 
@@ -68,4 +72,21 @@ test.serial('[E2E] serve one line of logs', async (t) => {
   t.log(JSON.stringify(descriptor, null, 2));
 });
 
-// TODO add happy flow test for each one of the API scenarios. for this, figure out a way to run multilog from the e2e to control rotation
+async function waitUntilServiceFound(t: any, serviceName: string) : Promise<any> {
+  let status: any;
+  while (
+      status === undefined ||
+      status.Services === undefined ||
+      status.Services[serviceName] === undefined ) {
+    try {
+      status = (await driver.fetchJson(`status`));
+      t.log('status', JSON.stringify(status));
+    } catch (e) {
+      t.log('status unavailable', e);
+      await sleep(100);
+    }
+  }
+  return status.Services;
+}
+
+// TODO add happy flow test for each one of the API scenarios.

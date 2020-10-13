@@ -27,6 +27,7 @@
     "test:quick": "echo '-- TEST --' && ava --verbose",
     "pretest:e2e": "mkdir -p _out/e2e",
     "test:e2e": "ava --verbose --timeout=10m --serial --config ./ava.config.e2e.js",
+    "build:test:e2e": "npm run build && npm run test:e2e",
     "prepack": "npm run build",
     "prettify": "npx prettier \"src/**/*.ts\" --write && npx prettier \"e2e/**/*.ts\" --write",
     "start": "node --async-stack-traces ./dist/main.js"

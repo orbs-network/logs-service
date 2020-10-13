@@ -1,25 +1,35 @@
 import test from 'ava';
 import { dockerComposeTool, getAddressForService } from 'docker-compose-mocha';
-import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
+import {mkdirSync, rmdirSync, unlinkSync, writeFileSync} from 'fs';
 import { exec } from 'child_process';
 import { exec as execPromise } from 'child-process-promise';
 import { retry } from 'ts-retry-promise';
 import { join } from 'path';
 import fetch from 'node-fetch';
-import { defaultConfiguration } from '../src/config';
+
+const e2eConfiguration = {
+    Port: 8080,
+    SkipBatchesOnMismatch: 3,
+    LogsPath: '/opt/orbs/logs',
+    StatusJsonPath: './status/status.json',
+    StatusUpdateLoopIntervalSeconds: 1,
+};
 
 export class TestEnvironment {
   private envName: string = '';
   public testLogger: (lines: string) => void = (_: string) => {}; // silent by default
+  private pathToDockerCompose: string;
+  private pathToAppConfig: string;
+  private pathToLogs: string;
 
-  constructor(private pathToDockerCompose: string) {}
-
-  getAppConfig() {
-    return defaultConfiguration;
+  constructor(pathToDockerFolder: string) {
+      this.pathToDockerCompose = join(pathToDockerFolder, 'docker-compose.yml');
+      this.pathToAppConfig = join(pathToDockerFolder, '_app-config.json');
+      this.pathToLogs = join(pathToDockerFolder, '_e2e-logs');
   }
 
-  getLogsPath() {
-    return join(__dirname, 'e2e-logs');
+  getAppConfig() {
+    return e2eConfiguration;
   }
 
   // runs all the docker instances with docker-compose
@@ -28,13 +38,14 @@ export class TestEnvironment {
 
     // step 1 - write config file for app
     test.serial.before((t) => {
-      t.log('[E2E] write config file for app');
-      const configFilePath = join(__dirname, 'app-config.json');
+      t.log('[E2E] write config file for app and clear logs folder - before dockers go up');
       try {
-        unlinkSync(configFilePath);
+        unlinkSync(this.pathToAppConfig);
+        rmdirSync(this.pathToLogs, { recursive: true });
       } catch (err) {}
       const config = this.getAppConfig();
-      writeFileSync(configFilePath, JSON.stringify(config));
+      writeFileSync(this.pathToAppConfig, JSON.stringify(config, null, 2));
+      mkdirSync(this.pathToLogs, {recursive: true});
     });
 
     // step 2 - launch service docker
@@ -44,7 +55,7 @@ export class TestEnvironment {
       test.serial.after.always.bind(test.serial.after),
       this.pathToDockerCompose,
       {
-        startOnlyTheseServices: ['app'],
+        startOnlyTheseServices: ['writer', 'app'],
         shouldPullImages: false,
         cleanUp: false,
       } as any
@@ -64,14 +75,21 @@ export class TestEnvironment {
       });
     });
 
-    test.serial.before((t) => t.log('[E2E] driver launchServices() finished'));
-  }
+      // step 4 - start live dump of logs from writer to test logger
+      test.serial.before(async (t) => {
+          t.log('[E2E] start live dump of logs from writer to test logger');
+          const logP = exec(`docker-compose -p ${this.envName} -f "${this.pathToDockerCompose}" logs -f writer`);
+          this.testLogger = t.log;
+          // @ts-ignore
+          logP.stdout.on('data', (data) => {
+              if (this.testLogger) this.testLogger(data);
+          });
+          logP.on('exit', () => {
+              if (this.testLogger) this.testLogger(`writer log exited`);
+          });
+      });
 
-  resetLogDir(serviceName: string): string {
-    const logPath = join(this.getLogsPath(), serviceName);
-    rmdirSync(logPath, { recursive: true });
-    mkdirSync(logPath);
-    return logPath;
+      test.serial.before((t) => t.log('[E2E] driver launchServices() finished'));
   }
 
   // inspired by https://github.com/applitools/docker-compose-mocha/blob/master/lib/get-logs-for-service.js
@@ -85,25 +103,46 @@ export class TestEnvironment {
         ).stdout;
         return JSON.parse(data);
       },
-      { retries: 10, delay: 300 }
+      { retries: 100, delay: 300 }
     );
   }
 
-  async fetch(serviceName: string, port: number, path: string) {
+  async fetchText(serviceName: string, port: number, path: string) {
     const addr = await getAddressForService(this.envName, this.pathToDockerCompose, serviceName, port);
     return await retry(
       async () => {
         const url = `http://${addr}/${path}`;
         this.testLogger(`fetching ${url}`);
         const response = await fetch(url);
-        const body = await response.text();
-        try {
-          return JSON.parse(body);
-        } catch (e) {
-          throw new Error(`invalid response: \n${body}`);
-        }
+        return await response.text();
       },
       { retries: 10, delay: 300 }
     );
   }
+
+  async fetchJson(path: string) : Promise<any> {
+      const text = await this.fetchText('app', this.getAppConfig().Port, path);
+      try {
+        return JSON.parse(text);
+      }catch (e) {
+          throw new Error(`error parsing json: ${text}`);
+      }
+  }
+
+  async writerLog(text: string) : Promise<number> {
+    const addr = await getAddressForService(this.envName, this.pathToDockerCompose, 'writer', 8080);
+    return await retry(
+        async () => {
+          const url = `http://${addr}/`;
+          this.testLogger(`writing to log files: ${text}`);
+          const res = await fetch(url, {method: 'POST', body: text});
+          return res.status;
+        },
+        { retries: 10, delay: 300 }
+    );
+  }
+}
+
+export function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }

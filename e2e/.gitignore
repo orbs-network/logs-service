@@ -1,2 +1,2 @@
-app-config.json
-e2e-logs/
+docker/_app-config.json
+docker/_e2e-logs

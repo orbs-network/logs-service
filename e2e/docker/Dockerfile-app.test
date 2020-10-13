@@ -1,0 +1,7 @@
+FROM local/logs-service
+
+COPY ./_app-config.json ./
+
+RUN mkdir -p ./logs
+
+CMD npm start -- --config /opt/orbs/_app-config.json

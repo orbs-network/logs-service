@@ -1,0 +1,23 @@
+version: "3"
+services:
+    writer:
+        build:
+            context: ""
+            dockerfile: Dockerfile-writer.test
+        ports:
+            - 8081:8080
+        volumes:
+            - ./_e2e-logs:/opt/orbs/logs
+        environment:
+            - MOCK_SERVICE_NAME=aService
+            - FILE_MAX_SIZE=512
+            - FILE_MAX_COUNT=10
+            - PORT=8080
+    app:
+        build:
+            context: ""
+            dockerfile: Dockerfile-app.test
+        ports:
+            - 8080:8080
+        volumes:
+            - ./_e2e-logs:/opt/orbs/logs
