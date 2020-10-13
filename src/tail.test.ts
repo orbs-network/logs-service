@@ -1,31 +1,36 @@
+import fs from 'fs';
 import test from 'ava';
 import { State } from './model/state';
 
-import {tail} from "./tail";
+import { tail } from "./tail";
+
+const tmpFileName = './tail-test';
 
 test.serial.afterEach.always(() => {
-    // TODO cleanup any temp files
+    fs.unlinkSync(tmpFileName);
 });
 
 test.serial('tails a simple file', async (t) => {
     const state = new State();
 
-    const tmpFileName = './some.file';
-    // TODO write a temp file
+    fs.writeFileSync(tmpFileName, 'blablabla');
 
     const readText = await new Promise((resolve, reject) => {
+        let result = '';
         tail(state, undefined, [tmpFileName])
-            .on('data', (text: string) => resolve(text))
             .on('close', (exitCode: number, signalCode: number) => {
-                if (exitCode ===  0){ // success
-                    // TODO read stdout and resolve
+                if (exitCode === 0) { // success
+                    resolve(result)
                     return;
                 }
                 reject(`abnormal termination (error level ${exitCode}, signal ${signalCode})`)
-            });
+            })
+            .stdout.on('data', (text: any) => {
+                result += text.toString();
+            })
     });
 
-    t.deepEqual(readText, 'some lines');
+    t.deepEqual(readText, 'blablabla');
 });
 
 // TODO add a test that additional parameters are passed to tail - e.g. -f - no need to cover all variations
