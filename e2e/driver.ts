@@ -12,7 +12,7 @@ const e2eConfiguration = {
     SkipBatchesOnMismatch: 3,
     LogsPath: '/opt/orbs/logs',
     StatusJsonPath: './status/status.json',
-    StatusUpdateLoopIntervalSeconds: 5,
+    StatusUpdateLoopIntervalSeconds: 2,
 };
 
 export class TestEnvironment {
