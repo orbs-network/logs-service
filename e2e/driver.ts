@@ -7,31 +7,17 @@ import { retry } from 'ts-retry-promise';
 import { join } from 'path';
 import fetch from 'node-fetch';
 
-const e2eConfiguration = {
-  Port: 8080,
-  SkipBatchesOnMismatch: 3,
-  LogsPath: '/opt/orbs/logs',
-  StatusJsonPath: './status/status.json',
-  StatusUpdateLoopIntervalSeconds: 2,
-};
-
 export class TestEnvironment {
   private writerAddress: string = '';
   private appAddress: string = '';
   private envName: string = '';
   public testLogger: (lines: string) => void = (_: string) => { }; // silent by default
-  private pathToDockerCompose: string;
-  private pathToAppConfig: string;
-  private pathToLogs: string;
+  readonly pathToDockerCompose: string;
+  readonly pathToLogs: string;
 
   constructor(pathToDockerFolder: string) {
     this.pathToDockerCompose = join(pathToDockerFolder, 'docker-compose.yml');
-    this.pathToAppConfig = join(pathToDockerFolder, '_app-config.json');
     this.pathToLogs = join(pathToDockerFolder, '_e2e-logs');
-  }
-
-  getAppConfig() {
-    return e2eConfiguration;
   }
 
   // runs all the docker instances with docker-compose
@@ -42,11 +28,8 @@ export class TestEnvironment {
     test.serial.before((t) => {
       t.log('[E2E] write config file for app and clear logs folder - before dockers go up');
       try {
-        unlinkSync(this.pathToAppConfig);
         rmdirSync(this.pathToLogs, { recursive: true });
       } catch (err) { }
-      const config = this.getAppConfig();
-      writeFileSync(this.pathToAppConfig, JSON.stringify(config, null, 2));
       mkdirSync(this.pathToLogs, { recursive: true });
     });
 

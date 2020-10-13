@@ -28,7 +28,6 @@ test.serial('[E2E] serving status over http', async (t) => {
   t.timeout(60 * 1000);
 
   await sleep(1000);
-  t.log(`Port`, driver.getAppConfig().Port);
 
   const status = await driver.fetchJson(`status`);
   t.log('status:', JSON.stringify(status, null, 2));
@@ -73,7 +72,7 @@ test.serial('[E2E] get logs summary', async (t) => {
     id: 1,
   });
 
-  t.deepEqual(errors, []);  
+  t.deepEqual(errors, []);
 });
 
 async function waitUntilServiceFound(t: any, serviceName: string) : Promise<any> {
