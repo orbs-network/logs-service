@@ -26,9 +26,9 @@ function tailProcessExited(activeTail) {
     );
 }
 
-function pruneTerminatedTails(state) {
+function pruneTerminatedTails(state, maxMillisSinceEnd) {
     const prunedTerminated = [];
-    const minEndTime = now() - 1000 * 60 * 60 * 24 * 7; // one week ago
+    const minEndTime = now() - (maxMillisSinceEnd || 1000 * 60 * 60 * 24 * 7); // default one week ago
     for (const tail of state.TerminatedTails) {
         if (tail.end.getTime() > minEndTime) {
             prunedTerminated.push(tail);
@@ -57,5 +57,7 @@ function pruneTailLists(state) {
 
 module.exports = {
     tail,
-    pruneTailLists
+    pruneTailLists,
+    pruneTerminatedTails,
+    pruneActiveTails
 };
