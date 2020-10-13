@@ -49,13 +49,16 @@ test.serial('[E2E] get logs summary', async (t) => {
   const logData = 'some log line';
   const expectedBatchSize = logData.length + "\n".length;
 
-  let accumulatedLogSize = 0;
-  while (accumulatedLogSize < 1024) {
-    const postRes = await driver.writerLog(logData);
-    t.deepEqual(postRes, 200);
-    accumulatedLogSize += expectedBatchSize;
-  }
-  t.log('wrote log:', accumulatedLogSize);
+  // let accumulatedLogSize = 0;
+  // while (accumulatedLogSize < 1024) {
+  //   const postRes = await driver.writerLog(logData);
+  //   t.deepEqual(postRes, 200);
+  //   accumulatedLogSize += expectedBatchSize;
+  // }
+  // t.log('wrote log:', accumulatedLogSize);
+
+  const postRes = await driver.writerLog(logData);
+  t.deepEqual(postRes, 200);
 
   // TODO FLAKY
   await sleep(1000);
@@ -70,8 +73,7 @@ test.serial('[E2E] get logs summary', async (t) => {
     id: 1,
   });
 
-  t.deepEqual(errors, []);
-  t.log(JSON.stringify(descriptor, null, 2));
+  t.deepEqual(errors, []);  
 });
 
 async function waitUntilServiceFound(t: any, serviceName: string) : Promise<any> {
