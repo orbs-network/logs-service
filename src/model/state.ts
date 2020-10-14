@@ -1,13 +1,17 @@
 import { getCurrentClockTime } from '../helpers';
+import { ChildProcess } from 'child_process';
 
 export interface RotationState {
   mapping: { [id: string]: number };
 }
 
 export interface Tailer {
-  processId: number;
-  ip: string;
-  path: string;
+  start: Date;
+  end: Date;
+  childProcess: ChildProcess;
+  requestHeaders: string[];
+  bytesRead: number;
+  url: string
 }
 
 export class State {
@@ -15,6 +19,8 @@ export class State {
   Services: { [id: string]: RotationState } = {};
 
   ActiveTails: Tailer[] = [];
+
+  TerminatedTails: Tailer[] = [];
 
   // not updated
   ServiceLaunchTime = getCurrentClockTime(); // UTC seconds

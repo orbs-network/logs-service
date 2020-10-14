@@ -1,0 +1,12 @@
+FROM node:12-alpine
+
+RUN apk add --no-cache daemontools --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing
+
+WORKDIR /opt/orbs/writer
+
+RUN npm install express
+COPY writer.js .
+COPY start.sh .
+
+CMD ./start.sh
+

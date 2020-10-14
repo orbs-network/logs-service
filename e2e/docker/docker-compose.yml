@@ -1,0 +1,20 @@
+version: "3"
+services:
+    writer:
+        build:
+            context: ""
+            dockerfile: Dockerfile-writer.test
+        ports:
+            - 8080
+        volumes:
+            - ./_e2e-logs:/opt/orbs/logs
+        environment:
+            - MOCK_SERVICE_NAME=aService            
+    app:
+        build:
+            context: ""
+            dockerfile: Dockerfile-app.test
+        ports:
+            - 8080
+        volumes:
+            - ./_e2e-logs:/opt/orbs/logs
