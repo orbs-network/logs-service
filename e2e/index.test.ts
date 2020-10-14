@@ -2,7 +2,6 @@ import test from 'ava';
 import { sleep, TestEnvironment } from './driver';
 import { join } from 'path';
 import { deepDataMatcher, isPositiveNumber } from './deep-matcher';
-import {response} from "express";
 
 const driver = new TestEnvironment(join(__dirname, 'docker'));
 driver.launchServices();
