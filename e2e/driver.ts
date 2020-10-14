@@ -1,11 +1,11 @@
 import test from 'ava';
 import { dockerComposeTool, getAddressForService } from 'docker-compose-mocha';
-import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
+import { mkdirSync, rmdirSync } from 'fs';
 import { exec } from 'child_process';
 import { exec as execPromise } from 'child-process-promise';
 import { retry } from 'ts-retry-promise';
 import { join } from 'path';
-import fetch from 'node-fetch';
+import fetch, {Response} from 'node-fetch';
 
 export class TestEnvironment {
   private writerAddress: string = '';
@@ -105,6 +105,13 @@ export class TestEnvironment {
       },
       { retries: 10, delay: 300 }
     );
+  }
+
+  async fetchTextAsync(path: string): Promise<Response> {
+    const addr = await this.getAppAddress();
+    const url = `http://${addr}/${path}`;
+    this.testLogger(`fetching ${url}`);
+    return fetch(url);
   }
 
   async fetchText(path: string): Promise<any> {

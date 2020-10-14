@@ -27,7 +27,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
     const logsBasePath = config.LogsPath;
 
     const rotationCheckerSingle = async function (service) {
-        
+
         const targetPath = serviceLogsPath(logsBasePath, service);
 
         state.Services[service] = state.Services[service] || {
@@ -45,8 +45,8 @@ export function setupLogsServerApp(app, config, state, Logger) {
             const firstBatchIdIfNoneMatch = lastKnownMaxBatch > 0 ? lastKnownMaxBatch + config.SkipBatchesOnMismatch : 1;
             const { mapping } = resolveBatchMapping(state, service, availableFiles, config, firstBatchIdIfNoneMatch);
 
-            state.Services[service].mapping = mapping;            
-        } catch (err) {            
+            state.Services[service].mapping = mapping;
+        } catch (err) {
             return Promise.resolve(`Couldnt check rotation status for: ${targetPath} with error: ${err.toString()}`);
         }
     }
@@ -143,14 +143,9 @@ export function setupLogsServerApp(app, config, state, Logger) {
             res.write(data);
         });
 
-        tailSpawn.stdout.on('close', () => {
+        tailSpawn.on('close', () => {
             // no more data will be received
             res.end();
-        });
-
-        tailSpawn.stderr.on('data', (data) => {
-            next(new Error(data));
-            //TODO not sure we need to print out any error if data was already sent - just close the connection
         });
 
         res.on('close', () => {
@@ -190,8 +185,8 @@ export function setupLogsServerApp(app, config, state, Logger) {
             // if (parseInt(start) >= requestedBatch.batchSize) {
             //     return Promise.reject(new Error(`Cannot request data from an offset bigger than the batch size itself! Batch requested: ${requestedBatch.id}, size (bytes): ${requestedBatch.batchSize}, requested from block: ${start}`));
             // }
-            streamOptions = { start: parseInt(start) };
-            tailArgs = ['-c', `+${start}`];
+            streamOptions = { start: parseInt(start) - 1 }; // zero based inclusive
+            tailArgs = ['-c', `+${start}`]; // one based inclusive
         }
 
         if (requestedBatch.fileName === 'current') {
@@ -217,14 +212,10 @@ export function setupLogsServerApp(app, config, state, Logger) {
                     res.write(data);
                 });
 
-                tailSpawn.stdout.on('close', () => {
+                tailSpawn.on('close', () => {
                     // no more data will be received
                     clearInterval(requestRotationCheckPid);
                     res.end();
-                });
-
-                tailSpawn.stderr.on('data', (data) => {
-                    next(new Error(data));
                 });
 
                 res.on('close', () => {
@@ -277,14 +268,14 @@ function resolveBatchMapping(state, service, fileDescriptors, config, firstBatch
 
     const lastKnownMapping = state.Services[service].mapping;
     const mapping = {};
-    let prevBatchNum;    
+    let prevBatchNum;
 
     const sortedFiles = sortBy(fileDescriptors, ['cleanFilename']).map((item, i) => {
         let batchNum = lastKnownMapping[item.fileName];
         if (batchNum === undefined) {
             if (prevBatchNum) {
                 batchNum = prevBatchNum + 1;
-            } else if (typeof firstBatchIdIfNoneMatch === 'function') {                
+            } else if (typeof firstBatchIdIfNoneMatch === 'function') {
                 batchNum = firstBatchIdIfNoneMatch();
             } else {
                 batchNum = firstBatchIdIfNoneMatch;
