@@ -4,13 +4,16 @@ const { sortBy, now } = require('lodash');
 function tail (state, request, params) {
     const tailObj = {
         start: new Date(),
-        request: request,
+        requestHeaders: request? request.rawHeaders: [],
+        bytesRead: 0
     };
 
     tailObj.childProcess = spawn('tail', params).on('exit', (code, signal) => {
         console.log(`tail process ${tailObj.childProcess.pid} exited with code ${code} and signal ${signal}`);
         tailObj.end = new Date();
     });
+
+    tailObj.childProcess.stdout.on('data', b=>{tailObj.bytes+=b.length});
 
     state.ActiveTails.push(tailObj);
 

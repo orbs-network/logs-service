@@ -1,6 +1,5 @@
 import { getCurrentClockTime } from '../helpers';
 import { ChildProcess } from 'child_process';
-import { Request } from 'express';
 
 export interface RotationState {
   mapping: { [id: string]: number };
@@ -10,7 +9,8 @@ export interface Tailer {
   start: Date;
   end: Date;
   childProcess: ChildProcess;
-  request: Request;
+  requestHeaders: string[];
+  bytesRead: number;
 }
 
 export class State {
