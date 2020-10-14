@@ -40,7 +40,7 @@ export async function generateStatusObj(state: State, config: Configuration, err
       Config: config,
       Services: state.Services,
       TailsActive: state.ActiveTails.map(renderTailProcessDesc),
-      TailsTerm: state.ActiveTails.map(renderTailProcessDesc),
+      TailsTerm: state.TerminatedTails.map(renderTailProcessDesc),
     },
   };
 
