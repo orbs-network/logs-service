@@ -11,6 +11,7 @@ export interface Tailer {
   childProcess: ChildProcess;
   requestHeaders: string[];
   bytesRead: number;
+  url: string
 }
 
 export class State {

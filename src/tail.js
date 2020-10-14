@@ -5,7 +5,8 @@ function tail (state, request, params) {
     const tailObj = {
         start: new Date(),
         requestHeaders: request? request.rawHeaders: [],
-        bytesRead: 0
+        bytesRead: 0,
+        url: request? request.originalUrl : ''
     };
 
     tailObj.childProcess = spawn('tail', params).on('exit', (code, signal) => {
@@ -13,7 +14,7 @@ function tail (state, request, params) {
         tailObj.end = new Date();
     });
 
-    tailObj.childProcess.stdout.on('data', b=>{tailObj.bytes+=b.length});
+    tailObj.childProcess.stdout.on('data', b=>{tailObj.bytesRead+=b.length});
 
     state.ActiveTails.push(tailObj);
 

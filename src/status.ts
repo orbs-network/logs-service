@@ -18,6 +18,7 @@ function renderTailProcessDesc(t: Tailer) {
     status: `exit code: ${(t.childProcess as any).exitCode} signal: ${(t.childProcess as any).signalCode}`,
     start: t.start ? t.start.toISOString() : 'NA',
     end: t.end ? t.end.toISOString() : 'NA',
+    url: t.url,
     headers: t.requestHeaders,
     bytesRead: t.bytesRead
   };
