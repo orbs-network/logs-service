@@ -1,6 +1,6 @@
 import * as Logger from './logger';
 import { parseArgs } from './cli-args';
-import fs, { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { State } from './model/state';
 import { serve } from './index';
 
@@ -26,7 +26,7 @@ process.on('SIGINT', function () {
 
 function readVersionFile() {
   try {
-    return fs.readFileSync('./version').toString().trim();
+    return readFileSync('./version').toString().trim();
   } catch (err) {
     Logger.log(`Cound not find version: ${err.message}`);
   }
