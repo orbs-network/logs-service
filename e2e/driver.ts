@@ -5,13 +5,13 @@ import { exec } from 'child_process';
 import { exec as execPromise } from 'child-process-promise';
 import { retry } from 'ts-retry-promise';
 import { join } from 'path';
-import fetch, {Response} from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 
 export class TestEnvironment {
   private writerAddress: string = '';
   private appAddress: string = '';
   private envName: string = '';
-  public testLogger: (lines: string) => void = (_: string) => { }; // silent by default
+  public testLogger: (lines: string) => void = (_: string) => {}; // silent by default
   readonly pathToDockerCompose: string;
   readonly pathToLogs: string;
 

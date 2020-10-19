@@ -1,6 +1,6 @@
 import * as Logger from './logger';
 import { parseArgs } from './cli-args';
-import { readFileSync, existsSync } from 'fs';
+import fs, { readFileSync, existsSync } from 'fs';
 import { State } from './model/state';
 import { serve } from './index';
 
@@ -24,11 +24,20 @@ process.on('SIGINT', function () {
   process.exit();
 });
 
+function readVersionFile() {
+  try {
+    return fs.readFileSync('./version').toString().trim();
+  } catch (err) {
+    Logger.log(`Cound not find version: ${err.message}`);
+  }
+  return '';
+}
+
 Logger.log('Service started.');
 const config = parseArgs(process.argv);
 Logger.log(`Input config: '${JSON.stringify(config)}'.`);
 
-const state = new State();
+const state = new State(readVersionFile());
 
 let initState;
 

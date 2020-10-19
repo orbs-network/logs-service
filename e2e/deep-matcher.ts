@@ -62,6 +62,10 @@ export function isPositiveNumber(str: string) {
   return str && parseInt(str) > 0;
 }
 
+export function isNonNegativeNumber(str: string) {
+  return str && parseInt(str) >= 0;
+}
+
 export function isValidEtherBalance(str: string) {
   return str && (str.startsWith('99') || str.startsWith('100'));
 }

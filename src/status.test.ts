@@ -31,9 +31,11 @@ test.serial('contains all payload fields', async (t) => {
 
   t.true('MemoryBytesUsed' in writtenContents.Payload);
   t.true('OpenFiles' in writtenContents.Payload);
+  t.true('Version' in writtenContents.Payload);
   t.true('Config' in writtenContents.Payload);
   t.true('Services' in writtenContents.Payload);
   t.true('TailsActive' in writtenContents.Payload);
+  t.true('TailsTerm' in writtenContents.Payload);
 
   t.true(isNumber(writtenContents.Payload.MemoryBytesUsed));
   t.true(isNumber(writtenContents.Payload.OpenFiles));
