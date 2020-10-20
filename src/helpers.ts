@@ -1,6 +1,9 @@
 import _ from 'lodash';
-import { mkdirSync } from 'fs';
+import {existsSync, mkdirSync, readFileSync} from 'fs';
 import { dirname } from 'path';
+import {Configuration} from "./config";
+import * as Logger from "./logger";
+import {State} from "./model/state";
 
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,4 +49,27 @@ export function jsonStringifyComplexTypes(obj: unknown): string {
     },
     2
   );
+}
+
+export function loadState(config: Configuration) : State {
+    const result = new State();
+    let initState;
+
+    if (existsSync(config.StatusJsonPath)) {
+        let rawStatusFile;
+        try {
+            rawStatusFile = readFileSync(config.StatusJsonPath, 'utf-8');
+            initState = JSON.parse(rawStatusFile);
+        } catch (err) {
+            Logger.log(`Error reading state from disk: ${err}`);
+            return result;
+        }
+    }
+
+    if (initState !== undefined) {
+        for (const n in initState.Payload.Services) {
+            result.Services[n] = Object.assign({}, initState.Payload.Services[n]);
+        }
+    }
+    return result;
 }

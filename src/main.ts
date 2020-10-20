@@ -1,8 +1,7 @@
 import * as Logger from './logger';
 import { parseArgs } from './cli-args';
-import { readFileSync, existsSync } from 'fs';
-import { State } from './model/state';
 import { serve } from './index';
+import {loadState} from "./helpers";
 
 process.on('uncaughtException', function (err) {
   Logger.log('Uncaught exception on process, shutting down:');
@@ -28,19 +27,8 @@ Logger.log('Service started.');
 const config = parseArgs(process.argv);
 Logger.log(`Input config: '${JSON.stringify(config)}'.`);
 
-const state = new State();
-
-let initState;
-
-if (existsSync(config.StatusJsonPath)) {
-  initState = JSON.parse(readFileSync(config.StatusJsonPath, 'utf-8'));
-}
-
-if (initState !== undefined) {
-  for (const n in initState.Payload.Services) {
-    state.Services[n] = Object.assign({}, initState.Payload.Services[n]);
-  }
-}
+const state = loadState(config);
 
 // start server
 const server = serve(config, state);
+
