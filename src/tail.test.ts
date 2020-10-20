@@ -13,10 +13,12 @@ test.serial.afterEach.always(() => {
   // eslint-disable-next-line no-empty
   try {
     fs.unlinkSync(tmpFileName1);
+    // eslint-disable-next-line no-empty
   } catch (e) {}
   // eslint-disable-next-line no-empty
   try {
     fs.unlinkSync(tmpFileName2);
+    // eslint-disable-next-line no-empty
   } catch (e) {}
 });
 
