@@ -1,11 +1,11 @@
 import * as Logger from './logger';
-import { pruneTailLists } from './tail';
-import { State, Tailer } from './model/state';
-import { writeFileSync } from 'fs';
-import { exec } from 'child-process-promise';
-import { ensureFileDirectoryExists, JsonResponse, getCurrentClockTime } from './helpers';
-import { Configuration } from './config';
+import {pruneTailLists} from './tail';
+import {RotationState, State, Tailer} from './model/state';
 import * as fs from 'fs';
+import {writeFileSync} from 'fs';
+import {exec} from 'child-process-promise';
+import {ensureFileDirectoryExists, getCurrentClockTime, JsonResponse} from './helpers';
+import {Configuration} from './config';
 
 async function getOpenFilesCount() {
   const result = await exec('lsof -l | wc -l');
@@ -23,6 +23,20 @@ function renderTailProcessDesc(t: Tailer) {
     headers: t.requestHeaders,
     bytesRead: t.bytesRead,
   };
+}
+
+function renderServices(services: { [p: string]: RotationState })  {
+  const result : {[p: string]: {}} = {};
+  for (const serviceName in services) {
+    result[serviceName] = {
+      'urls': {
+        'manifest': `/logs/${serviceName}`,
+        'tail': `/logs/${serviceName}/tail`,
+      },
+      ...services[serviceName]
+    };
+  }
+  return result;
 }
 
 export async function generateStatusObj(state: State, config: Configuration, err?: Error) {
@@ -43,7 +57,7 @@ export async function generateStatusObj(state: State, config: Configuration, err
       },
       OpenFiles,
       Config: config,
-      Services: state.Services,
+      Services: renderServices(state.Services),
       TailsActive: state.ActiveTails.map(renderTailProcessDesc),
       TailsTerm: state.TerminatedTails.map(renderTailProcessDesc),
     },

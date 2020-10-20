@@ -250,6 +250,9 @@ export function setupLogsServerApp(app, config, state, Logger) {
     app.get('/logs/:service', async (req, res, next) => {
         try {
             const batches = await getBatchesForPath(req.params.service);
+            batches.map(b => {
+                b.url = `/logs/${req.params.service}/batch/${b.id}`;
+            });
             res.json(batches).end();
         } catch (err) {
             next(err);
