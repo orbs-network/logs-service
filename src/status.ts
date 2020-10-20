@@ -15,6 +15,7 @@ async function getOpenFilesCount() {
 function renderTailProcessDesc(t: Tailer) {
   return {
     processId: t.childProcess.pid,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     status: `exit code: ${(t.childProcess as any).exitCode} signal: ${(t.childProcess as any).signalCode}`,
     start: t.start ? t.start.toISOString() : 'NA',
     end: t.end ? t.end.toISOString() : 'NA',
