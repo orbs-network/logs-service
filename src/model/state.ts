@@ -11,12 +11,14 @@ export interface Tailer {
   childProcess: ChildProcess;
   requestHeaders: string[];
   bytesRead: number;
-  url: string
+  url: string;
 }
 
 export class State {
   // serializable objects (uppercase)
   Services: { [id: string]: RotationState } = {};
+
+  CurrentVersion = '';
 
   ActiveTails: Tailer[] = [];
 

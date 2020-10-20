@@ -51,15 +51,19 @@ export function isValidBlock(str: string) {
 }
 
 export function isValidTimestamp(str: string) {
-  return str && new Date(str).getTime() > 1400000000;
+  return str != undefined && new Date(str).getTime() > 1400000000;
 }
 
 export function isNonEmptyString(str: string) {
-  return str && str.length > 0;
+  return str != undefined && str.length > 0;
 }
 
 export function isPositiveNumber(str: string) {
   return str && parseInt(str) > 0;
+}
+
+export function isNonNegativeNumber(str: string) {
+  return str != undefined && parseInt(str) >= 0;
 }
 
 export function isValidEtherBalance(str: string) {

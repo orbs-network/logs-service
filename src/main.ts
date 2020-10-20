@@ -31,4 +31,3 @@ const state = loadState(config);
 
 // start server
 const server = serve(config, state);
-

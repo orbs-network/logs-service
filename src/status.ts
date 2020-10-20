@@ -15,12 +15,13 @@ async function getOpenFilesCount() {
 function renderTailProcessDesc(t: Tailer) {
   return {
     processId: t.childProcess.pid,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     status: `exit code: ${(t.childProcess as any).exitCode} signal: ${(t.childProcess as any).signalCode}`,
     start: t.start ? t.start.toISOString() : 'NA',
     end: t.end ? t.end.toISOString() : 'NA',
     url: t.url,
     headers: t.requestHeaders,
-    bytesRead: t.bytesRead
+    bytesRead: t.bytesRead,
   };
 }
 
@@ -37,6 +38,9 @@ export async function generateStatusObj(state: State, config: Configuration, err
     Payload: {
       Uptime: getCurrentClockTime() - state.ServiceLaunchTime,
       MemoryBytesUsed: process.memoryUsage().heapUsed,
+      Version: {
+        Semantic: state.CurrentVersion,
+      },
       OpenFiles,
       Config: config,
       Services: state.Services,
@@ -77,5 +81,5 @@ function getErrorText(state: State, config: Configuration, err?: Error) {
   if (err) {
     res.push(`Error: ${err.message}.`);
   }
-  return (res.length) ? res.join(',') : undefined;
+  return res.length ? res.join(',') : undefined;
 }

@@ -1,7 +1,7 @@
 import test from 'ava';
 import { sleep, TestEnvironment } from './driver';
 import { join } from 'path';
-import { deepDataMatcher, isPositiveNumber } from './deep-matcher';
+import {deepDataMatcher, isNonEmptyString, isNonNegativeNumber, isPositiveNumber, isValidImageVersion} from './deep-matcher';
 
 const driver = new TestEnvironment(join(__dirname, 'docker'));
 driver.launchServices();
@@ -16,28 +16,23 @@ test.serial('[E2E] service is up, and writing status file', async (t) => {
   const status = await driver.catJsonInService('app', '/opt/orbs/status/status.json');
   t.log('status:', JSON.stringify(status, null, 2));
 
-  const errors = deepDataMatcher(status.Payload, {
-    MemoryBytesUsed: isPositiveNumber,
-  });
+  const errors = deepDataMatcher(status.Payload, statusPayloadTemplate);
   t.deepEqual(errors, []);
 });
 
 test.serial('[E2E] serving status over http', async (t) => {
   t.log('started');
   driver.testLogger = t.log;
+
   t.timeout(60 * 1000);
 
   await sleep(1000);
-
   const status = await driver.fetchJson(`status`);
-  t.log('status:', JSON.stringify(status, null, 2));
 
-  const errors = deepDataMatcher(status.Payload, {
-    MemoryBytesUsed: isPositiveNumber,
-  });
+  t.log('status:', JSON.stringify(status, null, 2));
+  const errors = deepDataMatcher(status.Payload, statusPayloadTemplate);
   t.deepEqual(errors, []);
 });
-
 test.serial('[E2E] get logs summary', async (t) => {
   t.log('started');
   driver.testLogger = t.log;
@@ -79,7 +74,9 @@ test.serial('[E2E] tails new logs', async (t) => {
 
   let tailed = '';
   const response = await driver.fetchTextAsync(`logs/aService/tail`);
-  response.body.on('data', (b) => {tailed += b.toString()});
+  response.body.on('data', (b) => {
+    tailed += b.toString();
+  });
 
   await sleep(2000); // let mapping/housekeeping run once on server
 
@@ -90,7 +87,7 @@ test.serial('[E2E] tails new logs', async (t) => {
     await sleep(500);
   }
 
-  t.log('read all new lines in tail across several files')
+  t.log('read all new lines in tail across several files');
 });
 
 test.serial('[E2E] get batches with options', async (t) => {
@@ -100,11 +97,11 @@ test.serial('[E2E] get batches with options', async (t) => {
   t.timeout(60 * 1000);
 
   const batches = await driver.fetchJson('logs/aService');
-  t.truthy(batches.length > 1, 'expected there to be several batches after prev tests' );
+  t.truthy(batches.length > 1, 'expected there to be several batches after prev tests');
 
   // expect list to be sorted by id in descending order:
   for (let i = 0; i < batches.length; i++) {
-    t.truthy(batches[i].id = batches[0].id - i);
+    t.truthy((batches[i].id = batches[0].id - i));
   }
 
   // download current
@@ -137,9 +134,13 @@ test.serial('[E2E] get batches with options', async (t) => {
   let responseFollow = '';
   let responseFollowStart2 = '';
   const responseNoOffset = await driver.fetchTextAsync(`logs/aService/batch/${batches[0].id}?follow`);
-  responseNoOffset.body.on('data', (b) => {responseFollow += b.toString()});
+  responseNoOffset.body.on('data', (b) => {
+    responseFollow += b.toString();
+  });
   const responseStart2 = await driver.fetchTextAsync(`logs/aService/batch/${batches[0].id}?start=2&follow`);
-  responseStart2.body.on('data', (b) => {responseFollowStart2 += b.toString()});
+  responseStart2.body.on('data', (b) => {
+    responseFollowStart2 += b.toString();
+  });
 
   await sleep(1000);
   const addedText = 'add some text while following';
@@ -155,5 +156,17 @@ test.serial('[E2E] get batches with options', async (t) => {
 
   t.deepEqual(responseFollow, curr + addedText + '\n');
   t.deepEqual(responseFollowStart2, currStart2 + addedText + '\n');
-
 });
+
+const statusPayloadTemplate = {
+  Uptime: isNonNegativeNumber,
+  MemoryBytesUsed: isPositiveNumber,
+  Version: {
+    Semantic: isValidImageVersion,
+  },
+  OpenFiles: isNonNegativeNumber,
+  Config: {},
+  Services: {},
+  TailsActive: {},
+  TailsTerm: {},
+};
