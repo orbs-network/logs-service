@@ -1,6 +1,9 @@
 import _ from 'lodash';
-import { mkdirSync } from 'fs';
+import {existsSync, mkdirSync, readFileSync} from 'fs';
 import { dirname } from 'path';
+import {Configuration} from "./config";
+import * as Logger from "./logger";
+import {State} from "./model/state";
 
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,4 +49,33 @@ export function jsonStringifyComplexTypes(obj: unknown): string {
     },
     2
   );
+}
+
+export function loadState(config: Configuration) : State {
+    const result = new State();
+    try {
+        result.CurrentVersion = readFileSync('./version').toString().trim();
+        Logger.log(`Version: ${result.CurrentVersion}`);
+    } catch (err) {
+        Logger.log(`Cound not find version: ${err.message}`);
+    }
+
+    let persistedStatus;
+    if (existsSync(config.StatusJsonPath)) {
+        let rawStatusFile;
+        try {
+            rawStatusFile = readFileSync(config.StatusJsonPath, 'utf-8');
+            persistedStatus = JSON.parse(rawStatusFile);
+        } catch (err) {
+            Logger.log(`Error reading state from disk: ${err}`);
+            return result;
+        }
+    }
+
+    if (persistedStatus !== undefined) {
+        for (const n in persistedStatus.Payload.Services) {
+            result.Services[n] = Object.assign({}, persistedStatus.Payload.Services[n]);
+        }
+    }
+    return result;
 }

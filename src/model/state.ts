@@ -28,7 +28,4 @@ export class State {
   ServiceLaunchTime = getCurrentClockTime(); // UTC seconds
 
   // non-serializable objects (lowercase)
-  constructor(currentVersion = 'testVersion') {
-    this.CurrentVersion = currentVersion;
-  }
 }

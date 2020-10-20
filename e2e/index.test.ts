@@ -1,7 +1,7 @@
 import test from 'ava';
 import { sleep, TestEnvironment } from './driver';
 import { join } from 'path';
-import { deepDataMatcher, isNonEmptyString, isNonNegativeNumber, isPositiveNumber } from './deep-matcher';
+import {deepDataMatcher, isNonEmptyString, isNonNegativeNumber, isPositiveNumber, isValidImageVersion} from './deep-matcher';
 
 const driver = new TestEnvironment(join(__dirname, 'docker'));
 driver.launchServices();
@@ -162,7 +162,7 @@ const statusPayloadTemplate = {
   Uptime: isNonNegativeNumber,
   MemoryBytesUsed: isPositiveNumber,
   Version: {
-    Semantic: isNonEmptyString,
+    Semantic: isValidImageVersion,
   },
   OpenFiles: isNonNegativeNumber,
   Config: {},
