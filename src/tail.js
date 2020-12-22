@@ -10,15 +10,12 @@ function tail (state, request, params) {
     };
 
     tailObj.childProcess = spawn('tail', params).on('exit', (code, signal) => {
-        console.log(`tail process ${tailObj.childProcess.pid} exited with code ${code} and signal ${signal}`);
         tailObj.end = new Date();
     });
 
     tailObj.childProcess.stdout.on('data', b=>{tailObj.bytesRead+=b.length});
 
     state.ActiveTails.push(tailObj);
-
-    console.log(`tail process ${tailObj.childProcess.pid} started`);
     return tailObj.childProcess;
 }
 
