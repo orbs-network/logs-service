@@ -10,6 +10,7 @@ function tail (state, request, params) {
     };
 
     tailObj.childProcess = spawn('tail', params).on('exit', (code, signal) => {
+        console.log(`tail process ${tailObj.childProcess.pid} exited with code ${code} and signal ${signal}`);
         tailObj.end = new Date();
     });
 
