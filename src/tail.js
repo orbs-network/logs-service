@@ -17,7 +17,7 @@ function tail (state, request, params) {
     tailObj.childProcess.stdout.on('data', b=>{tailObj.bytesRead+=b.length});
 
     state.ActiveTails.push(tailObj);
-
+    
     console.log(`tail process ${tailObj.childProcess.pid} started`);
     return tailObj.childProcess;
 }

@@ -225,9 +225,7 @@ export function setupLogsServerApp(app, config, state, Logger) {
 
                 requestRotationCheckPid = setInterval(() => {
                     const currentMappingVer = Math.max(...Object.values(state.Services[service].mapping)) + 1;
-                    console.log('checking whether we should kill the tail (current)', currentMappingVer);
                     if (currentMappingVer !== startMappingVer) {
-                        console.log('checking whether we should kill the tail (current,start)', currentMappingVer, startMappingVer);
                         tailSpawn.kill();
                     }
                 }, 5 * 1000);
